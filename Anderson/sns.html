@@ -1400,7 +1400,7 @@
 - JSON以外の文字は出力しないこと`;
 
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${settings.apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${settings.apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
