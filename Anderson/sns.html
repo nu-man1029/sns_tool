@@ -1043,6 +1043,13 @@
                 <input type="text" id="setupContact" class="setup-input" placeholder="例：@andersondiner / 03-XXXX-XXXX">
             </div>
 
+            <!-- Gemini API Key -->
+            <div class="setup-card">
+                <label class="setup-field-label">🤖 Gemini API Key（任意）</label>
+                <input type="password" id="setupApiKey" class="setup-input" placeholder="AIza...（未入力でデモモード）">
+                <p class="setup-hint">💡 Google AI Studio から取得したAPIキーを入力するとリアルAI生成が使えます。未入力でもデモ投稿文が生成されます。</p>
+            </div>
+
             <button class="setup-btn" onclick="completeSetup()">セットアップ完了 →</button>
             <p class="setup-footer-note">⚙️ 設定はあとからいつでも変更できます</p>
         </div>
@@ -1188,7 +1195,8 @@
             owner: '40代女性オーナー | 黒いラブラドール4匹',
             pr: '真っ黒のラブラドール4匹がお出迎え',
             sns: '毎日のランチ投稿',
-            contact: '@andersondiner'
+            contact: '@andersondiner',
+            apiKey: ''
         };
 
         let photos = [];
@@ -1203,11 +1211,21 @@
             season: '旬・季節・イベントに絡めて共感と拡散を狙います。'
         };
 
+        // ===== 投稿フォーマット組み立て =====
+        // 形式: 【タイトル】\n投稿内容\n\nーーーーーーーーーー\nお店情報\n\nハッシュタグ
+        function buildCaption(title, body, shopInfo, hashtags) {
+            return `【${title}】\n${body}\n\nーーーーーーーーーー\n${shopInfo}\n\n${hashtags}`;
+        }
+
+        function getShopInfo() {
+            return `📍 ${settings.location}\n👤 ${settings.owner}\n📞 ${settings.contact}`;
+        }
+
         // ===== Init =====
         window.addEventListener('load', () => {
-            const saved = localStorage.getItem('menupostSettings_v2');
+            const saved = localStorage.getItem('menupostSettings_v3');
             if (saved) {
-                settings = JSON.parse(saved);
+                settings = Object.assign(settings, JSON.parse(saved));
                 showMain();
             } else {
                 document.getElementById('setupOverlay').classList.add('active');
@@ -1230,7 +1248,8 @@
             settings.pr = document.getElementById('setupPR').value.trim() || '';
             settings.sns = document.getElementById('setupSNS').value.trim() || '';
             settings.contact = document.getElementById('setupContact').value.trim() || '@andersondiner';
-            localStorage.setItem('menupostSettings_v2', JSON.stringify(settings));
+            settings.apiKey = document.getElementById('setupApiKey').value.trim() || '';
+            localStorage.setItem('menupostSettings_v3', JSON.stringify(settings));
             showMain();
         }
 
@@ -1241,6 +1260,7 @@
             document.getElementById('setupPR').value = settings.pr;
             document.getElementById('setupSNS').value = settings.sns;
             document.getElementById('setupContact').value = settings.contact;
+            document.getElementById('setupApiKey').value = settings.apiKey;
             document.getElementById('setupOverlay').classList.add('active');
         }
 
@@ -1274,11 +1294,11 @@
             badge.textContent = `📸 ${photos.length}枚選択`;
             info.style.display = photos.length > 0 ? 'block' : 'none';
             grid.innerHTML = photos.map((p, i) => `
-        <div class="photo-thumb">
-          <img src="${p}" alt="Photo ${i + 1}">
-          <button class="photo-remove" onclick="removePhoto(${i})">✕</button>
-        </div>
-      `).join('');
+                <div class="photo-thumb">
+                  <img src="${p}" alt="Photo ${i + 1}">
+                  <button class="photo-remove" onclick="removePhoto(${i})">✕</button>
+                </div>
+            `).join('');
         }
 
         function removePhoto(i) {
@@ -1288,11 +1308,9 @@
 
         // ===== Target & Other =====
         function setTarget(v) {
-            const inp = document.getElementById('targetInput');
-            inp.value = v;
-            // pill visual feedback
+            document.getElementById('targetInput').value = v;
             document.querySelectorAll('.pill').forEach(p => {
-                p.classList.toggle('active', p.textContent === v || p.getAttribute('onclick') === `setTarget('${v}')`);
+                p.classList.toggle('active', p.getAttribute('onclick') === `setTarget('${v}')`);
             });
         }
 
@@ -1302,7 +1320,7 @@
         }
 
         // ===== Generate =====
-        function generatePost() {
+        async function generatePost() {
             const target = document.getElementById('targetInput').value.trim();
             const other = document.getElementById('otherInput').value.trim();
             const tmpl = document.getElementById('templateSelect').value;
@@ -1310,133 +1328,232 @@
             if (photos.length === 0) { alert('📸 写真を選択してください'); return; }
             if (!target) { alert('🎯 ターゲットを入力してください'); return; }
 
-            // Switch to results tab and show loading
             switchTab('results', document.getElementById('tabResults'));
-
             document.getElementById('resultContent').innerHTML = `
-        <div class="loading-card">
-          <div class="loading-animation">
-            <div class="loading-ring"></div>
-          </div>
-          <div class="loading-title">投稿文を生成中...</div>
-          <div class="loading-sub">Gemini AIが3パターンを考えています（3〜5秒）</div>
-          <div class="progress-track"><div class="progress-bar"></div></div>
-        </div>
-      `;
+                <div class="loading-card">
+                  <div class="loading-animation"><div class="loading-ring"></div></div>
+                  <div class="loading-title">投稿文を生成中...</div>
+                  <div class="loading-sub">${settings.apiKey ? 'Gemini APIで生成中（5〜10秒）' : 'デモモードで生成中（3秒）'}</div>
+                  <div class="progress-track"><div class="progress-bar"></div></div>
+                </div>`;
 
-            setTimeout(() => {
-                currentResults = buildResults(target, other, tmpl);
-                renderResults();
-            }, 1600);
+            if (settings.apiKey) {
+                // ===== Gemini API呼び出し =====
+                try {
+                    currentResults = await callGeminiAPI(target, other, tmpl);
+                } catch (err) {
+                    console.error('Gemini APIエラー:', err);
+                    document.getElementById('resultContent').innerHTML = `
+                        <div class="note-box" style="margin-top:0;border-color:#e53935;background:#fdecea;">
+                          <strong style="color:#e53935;">⚠️ APIエラー：</strong>${err.message}<br>
+                          <small>APIキーを確認するか、デモモード（APIキー未入力）でお試しください。</small>
+                        </div>`;
+                    return;
+                }
+            } else {
+                // ===== デモモード =====
+                await new Promise(r => setTimeout(r, 1600));
+                currentResults = buildDemoResults(target, other, tmpl);
+            }
+            renderResults();
         }
 
-        // ===== Build dummy results =====
-        function buildResults(target, other, tmpl) {
-            const extra = other ? `\n${other}` : '';
+        // ===== Gemini API呼び出し =====
+        async function callGeminiAPI(target, other, tmpl) {
+            const shopInfo = getShopInfo();
+            const tmplNames = {
+                emotional: 'エモーショナル型（感動・日常）',
+                casual: 'カジュアル型（親しみやすさ）',
+                promo: 'プロモーション型（限定感・予約促進）',
+                world: '世界観型（ブランド価値）',
+                season: 'シーズン型（季節・イベント）'
+            };
+
+            const prompt = `あなたは飲食店のSNS投稿文を作るプロのコピーライターです。
+以下の情報をもとに、Instagram投稿文を3パターン生成してください。
+
+【店舗情報】
+- 店名：${settings.shopName}
+- 場所：${settings.location}
+- オーナー：${settings.owner}
+- こだわり：${settings.pr}
+
+【今回の投稿】
+- ターゲット：${target}
+- テンプレートスタイル：${tmplNames[tmpl] || tmpl}
+- 強調したいこと：${other || 'なし'}
+
+【出力形式】（3パターンをJSON配列で出力）
+[
+  {
+    "title": "投稿のタイトル（20文字以内・絵文字OK）",
+    "body": "投稿本文（3〜5行。改行は\\nで表現）",
+    "hashtags": "#ハッシュタグ1 #ハッシュタグ2 ... （5〜8個）"
+  },
+  ...
+]
+
+【ルール】
+- 各パターンで異なるアプローチを取ること
+- 本文は自然な日本語で、${target}に刺さる表現を使うこと
+- ハッシュタグは店名・料理ジャンル・地域名などを含めること
+- JSON以外の文字は出力しないこと`;
+
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${settings.apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.9, maxOutputTokens: 1500 }
+                    })
+                }
+            );
+
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({}));
+                throw new Error(errBody?.error?.message || `HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+            const parsed = JSON.parse(jsonStr);
+
+            return parsed.map(p => ({
+                title: p.title,
+                caption: buildCaption(p.title, p.body, shopInfo, p.hashtags)
+            }));
+        }
+
+        // ===== デモ用投稿文生成 =====
+        function buildDemoResults(target, other, tmpl) {
+            const extra = other || 'なし';
             const tag = target.split(/[\s、()（）]/)[0];
             const name = settings.shopName;
-            const contact = settings.contact;
+            const shopInfo = getShopInfo();
 
             const patterns = {
                 emotional: [
                     {
                         title: '本日のランチ🍽️',
-                        caption: `今日も、${name}のランチがはじまりました。${extra}\n${target}のあなたに届けたい、心を込めた一皿。\nラブラドール4匹が待つテラスで、少し贅沢なお昼の時間を。\n${contact}\n\n#${name} #ランチ #${tag} #来店お待ちしています`
+                        body: `今日も、${name}のランチがはじまりました。\n${target}のあなたに届けたい、心を込めた一皿。\nラブラドール4匹が待つテラスで、少し贅沢なお昼の時間を。\n強調ポイント：${extra}`,
+                        hashtags: `#${name} #ランチ #${tag} #来店お待ちしています`
                     },
                     {
                         title: '心が喜ぶランチ✨',
-                        caption: `料理が運ばれてきた瞬間の、あの高揚感。${extra}\n${target}の皆さんに、ぜひ感じてほしいんです。\nテラス席、今日も気持ちいいですよ🐾\n${contact}\n\n#${name} #ランチタイム #${tag} #犬カフェ`
+                        body: `料理が運ばれてきた瞬間の、あの高揚感。\n${target}の皆さんに、ぜひ感じてほしいんです。\nテラス席、今日も気持ちいいですよ🐾\n強調ポイント：${extra}`,
+                        hashtags: `#${name} #ランチタイム #${tag} #犬カフェ`
                     },
                     {
                         title: 'いつもの昼を特別に☀️',
-                        caption: `${name}のランチは毎日手作りです。${extra}\n日常の中に、ちょっとした贅沢を。${target}の皆さん、ランチに来てください。\n${contact}\n\n#${name} #本日のランチ #${tag} #渋谷ランチ`
-                    }
+                        body: `${name}のランチは毎日手作りです。\n日常の中に、ちょっとした贅沢を。\n${target}の皆さん、ランチに来てください。\n強調ポイント：${extra}`,
+                        hashtags: `#${name} #本日のランチ #${tag} #渋谷ランチ`
+                    },
                 ],
                 casual: [
                     {
                         title: '今日のランチ、来ない？🍴',
-                        caption: `ねえ、今日のランチどうする？😄${extra}\n${name}のランチ、めちゃくちゃ美味しいよ！\n${target}のみんな、ぜひ！ラブラドールたちも待ってるよ🐾\n${contact}\n\n#${name} #ランチ #${tag} #犬がいるカフェ`
+                        body: `ねえ、今日のランチどうする？😄\n${name}のランチ、めちゃくちゃ美味しいよ！\n${target}のみんな、ぜひ！ラブラドールたちも待ってるよ🐾\n強調ポイント：${extra}`,
+                        hashtags: `#${name} #ランチ #${tag} #犬がいるカフェ`
                     },
                     {
                         title: '今日もお昼に会いましょう🌞',
-                        caption: `今日のランチ、写真撮ったのでおすそわけ📸${extra}\nほんとに、毎回クオリティ高いんだよなー。\n${target}の方、気軽に来てね！\n${contact}\n\n#${name} #今日のランチ #${tag} #インスタグルメ`
+                        body: `今日のランチ、写真撮ったのでおすそわけ📸\nほんとに、毎回クオリティ高いんだよなー。\n${target}の方、気軽に来てね！\n強調ポイント：${extra}`,
+                        hashtags: `#${name} #今日のランチ #${tag} #インスタグルメ`
                     },
                     {
                         title: 'ランチで元気チャージ💪',
-                        caption: `こんにちは！今日もランチ準備できてます🎉${extra}\n${target}の皆さん、午後の仕事のエネルギーをチャージしに来てね。\n${contact}\n\n#${name} #ランチ #${tag} #テラス席`
-                    }
+                        body: `こんにちは！今日もランチ準備できてます🎉\n${target}の皆さん、午後のエネルギーをチャージしに来てね。\n強調ポイント：${extra}`,
+                        hashtags: `#${name} #ランチ #${tag} #テラス席`
+                    },
                 ],
                 promo: [
                     {
                         title: '本日限定ランチ🔥',
-                        caption: `【今日だけの特別メニュー】${extra}\n${target}の皆様、ぜひこの機会にお越しください。\n席数が限られていますので、早めのご来店を！\n予約→ ${contact}\n\n#${name} #限定ランチ #${tag} #予約受付中`
+                        body: `【今日だけの特別メニュー】\n${extra}\n${target}の皆様、ぜひこの機会にお越しください。\n席数が限られていますので、早めのご来店を！`,
+                        hashtags: `#${name} #限定ランチ #${tag} #予約受付中`
                     },
                     {
                         title: '期間限定プレート🎁',
-                        caption: `今週末まで！特別価格でご提供中。${extra}\n${target}の方に、特にオススメしたい一品です。\n食べ逃さないうちに→ ${contact}\n\n#${name} #期間限定 #${tag} #お得ランチ`
+                        body: `今週末まで！特別価格でご提供中。\n${extra}\n${target}の方に、特にオススメしたい一品です。\n食べ逃さないうちに！`,
+                        hashtags: `#${name} #期間限定 #${tag} #お得ランチ`
                     },
                     {
                         title: '先着限定🏃',
-                        caption: `先着15名様！本日のスペシャルランチ。${extra}\n${target}の皆様、お急ぎください。\nご予約はInstagramのDMから💌\n${contact}\n\n#${name} #先着限定 #${tag} #ランチ`
-                    }
+                        body: `先着15名様！本日のスペシャルランチ。\n${extra}\n${target}の皆様、お急ぎください。\nご予約はInstagramのDMから💌`,
+                        hashtags: `#${name} #先着限定 #${tag} #ランチ`
+                    },
                 ],
                 world: [
                     {
-                        title: '${name}という場所🌿',
-                        caption: `ここは単なる食事の場所じゃない。${extra}\nラブラドール4匹とオーナーが作り上げた、癒しの空間。\n${target}の皆さんに届けたい、その世界観。\n${contact}\n\n#${name} #世界観 #${tag} #犬と過ごす時間`
+                        title: `${name}という場所🌿`,
+                        body: `ここは単なる食事の場所じゃない。\nラブラドール4匹とオーナーが作り上げた、癒しの空間。\n${target}の皆さんに届けたい、その世界観。\n${extra}`,
+                        hashtags: `#${name} #世界観 #${tag} #犬と過ごす時間`
                     },
                     {
                         title: '食は、物語だ。📖',
-                        caption: `${name}のランチを食べるたびに、オーナーの想いを感じる。${extra}\n${target}の皆さんに、ぜひ体験してほしいこの空気感。\n${contact}\n\n#${name} #ブランド #${tag} #こだわりのランチ`
+                        body: `${name}のランチを食べるたびに、オーナーの想いを感じる。\n${target}の皆さんに、ぜひ体験してほしいこの空気感。\n${extra}`,
+                        hashtags: `#${name} #ブランド #${tag} #こだわりのランチ`
                     },
                     {
                         title: '丁寧に、ていねいに🙏',
-                        caption: `一皿一皿に、${name}のこだわりが詰まっています。${extra}\n${target}の皆様、その想いを受け取りにきてください。\n${contact}\n\n#${name} #丁寧な暮らし #${tag} #オーナーこだわり`
-                    }
+                        body: `一皿一皿に、${name}のこだわりが詰まっています。\n${target}の皆様、その想いを受け取りにきてください。\n${extra}`,
+                        hashtags: `#${name} #丁寧な暮らし #${tag} #オーナーこだわり`
+                    },
                 ],
                 season: [
                     {
                         title: '春のランチspecial🌸',
-                        caption: `この季節にしか味わえないランチが登場！${extra}\n${target}の皆さん、旬の味をテラスで楽しみましょう。\nラブラドールたちも春気分でお出迎え🐾\n${contact}\n\n#${name} #春ランチ #${tag} #季節限定`
+                        body: `この季節にしか味わえないランチが登場！\n${extra}\n${target}の皆さん、旬の味をテラスで楽しみましょう。\nラブラドールたちも春気分でお出迎え🐾`,
+                        hashtags: `#${name} #春ランチ #${tag} #季節限定`
                     },
                     {
                         title: '季節を食べよう🍃',
-                        caption: `旬の食材を丁寧に使った${name}の季節ランチ。${extra}\n${target}のあなたへ、今しか食べられない味をどうぞ。\n${contact}\n\n#${name} #季節メニュー #${tag} #旬の食材`
+                        body: `旬の食材を丁寧に使った${name}の季節ランチ。\n${extra}\n${target}のあなたへ、今しか食べられない味をどうぞ。`,
+                        hashtags: `#${name} #季節メニュー #${tag} #旬の食材`
                     },
                     {
                         title: 'イベントランチ開催！🎉',
-                        caption: `特別なランチイベントを開催します！${extra}\n${target}の皆さん、ぜひご参加ください。\n詳しくは→ ${contact}\n\n#${name} #イベント #${tag} #ランチイベント`
-                    }
+                        body: `特別なランチイベントを開催します！\n${extra}\n${target}の皆さん、ぜひご参加ください。`,
+                        hashtags: `#${name} #イベント #${tag} #ランチイベント`
+                    },
                 ]
             };
 
-            return patterns[tmpl] || patterns.emotional;
+            const list = patterns[tmpl] || patterns.emotional;
+            return list.map(p => ({
+                title: p.title,
+                caption: buildCaption(p.title, p.body, shopInfo, p.hashtags)
+            }));
         }
 
         // ===== Render results =====
         function renderResults() {
             const html = currentResults.map((r, i) => `
-        <div class="result-card ${i === 0 ? 'selected' : ''}" onclick="selectResult(this, ${i})" id="result${i}">
-          <div class="result-meta">
-            <div class="result-badge">案 ${i + 1}</div>
-            <div class="result-selected-badge">✓ 選択中</div>
-          </div>
-          <div class="result-preview">${r.caption.replace(/\n/g, ' ')}</div>
-          <button class="result-copy-btn" onclick="copyResult(event,${i})">
-            📋 コピー
-          </button>
-        </div>
-      `).join('');
+                <div class="result-card ${i === 0 ? 'selected' : ''}" onclick="selectResult(this,${i})" id="result${i}">
+                  <div class="result-meta">
+                    <div class="result-badge">案 ${i + 1}</div>
+                    <div class="result-selected-badge">✓ 選択中</div>
+                  </div>
+                  <div class="result-title-preview">【${r.title}】</div>
+                  <div class="result-preview">${r.caption.replace(/\n/g, ' ')}</div>
+                  <button class="result-copy-btn" onclick="copyResult(event,${i})">📋 コピー</button>
+                </div>
+            `).join('');
+
+            const modeLabel = settings.apiKey
+                ? '<span style="color:var(--primary);font-weight:700;">🤖 Gemini API生成</span>'
+                : '<span style="color:var(--text3);">📋 デモモード</span>';
 
             document.getElementById('resultContent').innerHTML = `
-        <div class="section-title">📝 3パターン選択</div>
-        ${html}
-        <div class="note-box">
-          <strong>ヒント：</strong>案をタップして選択すると「プレビュー」タブでInstagram風の表示を確認できます。
-        </div>
-      `;
+                <div class="section-title">📝 3パターン選択 ${modeLabel}</div>
+                ${html}
+                <div class="note-box">
+                  <strong>ヒント：</strong>案をタップして選択→「プレビュー」タブでInstagram風プレビューを確認できます。
+                </div>`;
 
-            // Auto select first
             selectedResult = currentResults[0];
             updatePreview();
         }
@@ -1450,7 +1567,8 @@
 
         function copyResult(e, i) {
             e.stopPropagation();
-            navigator.clipboard.writeText(currentResults[i].caption).then(() => {
+            const text = currentResults[i].caption;
+            navigator.clipboard.writeText(text).then(() => {
                 const btn = e.currentTarget;
                 btn.textContent = '✅ コピー完了！';
                 btn.style.background = 'var(--primary)';
@@ -1467,9 +1585,12 @@
         function updatePreview() {
             if (!selectedResult) return;
 
+            // フォーマット: 【タイトル】\n本文\n\nーーー\nお店情報\n\nハッシュタグ
             const lines = selectedResult.caption.split('\n');
-            const bodyLines = lines.filter(l => !l.trim().startsWith('#')).join('<br>');
-            const hashStr = lines.filter(l => l.trim().startsWith('#')).join(' ');
+            const hashLines = lines.filter(l => l.trim().startsWith('#'));
+            const bodyLines = lines.filter(l => !l.trim().startsWith('#'));
+            const hashStr = hashLines.join(' ');
+            const bodyHTML = bodyLines.join('<br>');
 
             let photoHTML = '';
             if (photos.length === 0) {
@@ -1483,39 +1604,37 @@
             const initial = settings.shopName.charAt(0).toUpperCase();
 
             document.getElementById('previewContent').innerHTML = `
-        <div class="ig-card slide-up">
-          <div class="ig-header">
-            <div class="ig-user">
-              <div class="ig-avatar">${initial}</div>
-              <div>
-                <div class="ig-username">${settings.shopName}</div>
-                <div class="ig-location">${settings.location}</div>
-              </div>
-            </div>
-            <div class="ig-dots">⋯</div>
-          </div>
-          ${photoHTML}
-          <div class="ig-actions">
-            <button class="ig-action">♡</button>
-            <button class="ig-action">💬</button>
-            <button class="ig-action">➤</button>
-            <button class="ig-action bookmark">🔖</button>
-          </div>
-          <div class="ig-likes">❤️ 215人がいいね！と言っています</div>
-          <div class="ig-caption">
-            <strong>${selectedResult.title}</strong><br>
-            ${bodyLines}
-            ${hashStr ? `<span class="hashtag-line">${hashStr}</span>` : ''}
-          </div>
-        </div>
-        <button class="btn-secondary" onclick="copyResult_full()">📋 投稿文をコピー</button>
-      `;
+                <div class="ig-card slide-up">
+                  <div class="ig-header">
+                    <div class="ig-user">
+                      <div class="ig-avatar">${initial}</div>
+                      <div>
+                        <div class="ig-username">${settings.shopName}</div>
+                        <div class="ig-location">${settings.location}</div>
+                      </div>
+                    </div>
+                    <div class="ig-dots">⋯</div>
+                  </div>
+                  ${photoHTML}
+                  <div class="ig-actions">
+                    <button class="ig-action">♡</button>
+                    <button class="ig-action">💬</button>
+                    <button class="ig-action">➤</button>
+                    <button class="ig-action bookmark">🔖</button>
+                  </div>
+                  <div class="ig-likes">❤️ 215人がいいね！と言っています</div>
+                  <div class="ig-caption">
+                    ${bodyHTML}
+                    ${hashStr ? `<span class="hashtag-line">${hashStr}</span>` : ''}
+                  </div>
+                </div>
+                <button class="btn-secondary" onclick="copyResult_full()">📋 この投稿文をコピー</button>`;
         }
 
         function copyResult_full() {
             if (!selectedResult) return;
             navigator.clipboard.writeText(selectedResult.caption).then(() => {
-                alert('投稿文をコピーしました！');
+                alert('✅ 投稿文をクリップボードにコピーしました！');
             });
         }
 
