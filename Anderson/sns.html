@@ -989,6 +989,7 @@
 
 <body>
 
+    <!-- ====== SETUP SCREEN ====== -->
     <div id="setupOverlay" class="setup-overlay active">
         <div class="setup-inner">
             <div class="setup-hero">
@@ -1002,40 +1003,47 @@
                 <p class="setup-hero-sub">初回セットアップを完了するとすぐに使えます<br>（約1分）</p>
             </div>
 
+            <!-- 店名 -->
             <div class="setup-card">
                 <label class="setup-field-label">🏪 店舗名</label>
                 <input type="text" id="setupShopName" class="setup-input" value="AndersonDiner"
                     placeholder="例：AndersonDiner">
             </div>
 
+            <!-- 位置情報 -->
             <div class="setup-card">
                 <label class="setup-field-label">📍 位置情報（Google Maps）</label>
                 <input type="text" id="setupLocation" class="setup-input" placeholder="例：東京都渋谷区道玄坂1-2-3">
                 <p class="setup-hint">💡 Google Maps で検索した住所をコピペしてください</p>
             </div>
 
+            <!-- オーナー -->
             <div class="setup-card">
                 <label class="setup-field-label">👤 オーナー情報</label>
                 <input type="text" id="setupOwner" class="setup-input" placeholder="例：40代女性オーナー｜黒いラブラドール4匹">
             </div>
 
+            <!-- お店のPR -->
             <div class="setup-card">
                 <label class="setup-field-label">✨ お店のPR・こだわり</label>
                 <textarea id="setupPR" class="setup-textarea"
                     placeholder="例：真っ黒のラブラドール4匹がお出迎え&#10;テラス席で愛犬と一緒にランチできます&#10;こだわりの新鮮食材を使用"></textarea>
             </div>
 
+            <!-- SNS施策 -->
             <div class="setup-card">
                 <label class="setup-field-label">📱 SNS集客施策</label>
                 <textarea id="setupSNS" class="setup-textarea"
                     placeholder="例：毎日のランチ投稿&#10;週1回の限定メニュー紹介&#10;季節イベント"></textarea>
             </div>
 
+            <!-- 連絡先 -->
             <div class="setup-card">
                 <label class="setup-field-label">📞 連絡先（Instagram / 電話）</label>
                 <input type="text" id="setupContact" class="setup-input" placeholder="例：@andersondiner / 03-XXXX-XXXX">
             </div>
 
+            <!-- Gemini API Key -->
             <div class="setup-card">
                 <label class="setup-field-label">🤖 Gemini API Key（任意）</label>
                 <input type="password" id="setupApiKey" class="setup-input" placeholder="AIza...（未入力でデモモード）">
@@ -1047,8 +1055,10 @@
         </div>
     </div>
 
+    <!-- ====== MAIN SCREEN ====== -->
     <div id="mainContainer" style="display:none;">
 
+        <!-- Header -->
         <div class="header">
             <div class="header-inner">
                 <div class="header-brand">
@@ -1064,6 +1074,7 @@
             </div>
         </div>
 
+        <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" id="tabCreate" onclick="switchTab('create', this)">
                 <span>✨</span> 作成
@@ -1078,8 +1089,10 @@
 
         <div class="content">
 
+            <!-- ====== TAB: 作成 ====== -->
             <div id="create" class="tab-content active">
 
+                <!-- 写真 -->
                 <div class="card">
                     <div class="card-label">
                         <div class="label-icon">📸</div>
@@ -1097,6 +1110,7 @@
                     <div id="photoPreview" class="photo-grid"></div>
                 </div>
 
+                <!-- テンプレート -->
                 <div class="card">
                     <div class="card-label">
                         <div class="label-icon">📋</div>
@@ -1112,6 +1126,7 @@
                     <div class="template-desc" id="templateDesc">今日の一皿の感動をそのままに。訪れた体験をリアルに届けます。</div>
                 </div>
 
+                <!-- ターゲット -->
                 <div class="card">
                     <div class="card-label">
                         <div class="label-icon">🎯</div>
@@ -1126,6 +1141,7 @@
                     </div>
                 </div>
 
+                <!-- 強調したい内容 -->
                 <div class="card">
                     <div class="card-label">
                         <div class="label-icon">💬</div>
@@ -1141,12 +1157,14 @@
                     </div>
                 </div>
 
+                <!-- 生成ボタン -->
                 <button class="btn-primary" onclick="generatePost()">
                     ✨ 投稿文を生成（3パターン）
                 </button>
 
             </div>
 
+            <!-- ====== TAB: 生成結果 ====== -->
             <div id="results" class="tab-content">
                 <div id="resultContent">
                     <div class="empty-state">
@@ -1156,6 +1174,7 @@
                 </div>
             </div>
 
+            <!-- ====== TAB: プレビュー ====== -->
             <div id="preview" class="tab-content">
                 <div id="previewContent">
                     <div class="empty-state">
@@ -1165,7 +1184,10 @@
                 </div>
             </div>
 
-        </div></div><script>
+        </div><!-- /content -->
+    </div><!-- /mainContainer -->
+
+    <script>
         // ===== State =====
         let settings = {
             shopName: 'AndersonDiner',
@@ -1190,6 +1212,7 @@
         };
 
         // ===== 投稿フォーマット組み立て =====
+        // 形式: 【タイトル】\n投稿内容\n\nーーーーーーーーーー\nお店情報\n\nハッシュタグ
         function buildCaption(title, body, shopInfo, hashtags) {
             return `【${title}】\n${body}\n\nーーーーーーーーーー\n${shopInfo}\n\n${hashtags}`;
         }
@@ -1335,7 +1358,7 @@
             renderResults();
         }
 
-        // ===== Gemini API呼び出し (完全に修正済) =====
+        // ===== Gemini API呼び出し =====
         async function callGeminiAPI(target, other, tmpl) {
             const shopInfo = getShopInfo();
             const tmplNames = {
@@ -1364,17 +1387,17 @@
 [
   {
     "title": "投稿のタイトル（20文字以内・絵文字OK）",
-    "body": "投稿本文（3〜5行。※途中で実際の改行は絶対にせず、改行したい場所には <br> と入力してください）",
-    "hashtags": "#ハッシュタグ1 #ハッシュタグ2 （5〜8個）"
+    "body": "投稿本文（3〜5行。改行は必ず \\n を使用してください）",
+    "hashtags": "#ハッシュタグ1 #ハッシュタグ2 ... （5〜8個）"
   }
 ]
 
 【ルール】
 - 各パターンで異なるアプローチを取ること
 - 本文は自然な日本語で、${target}に刺さる表現を使うこと
-- JSONの形式エラーを防ぐため、データの中に実際の改行（エンター）は含めないでください。`;
+- ハッシュタグは店名・料理ジャンル・地域名などを含めること
+- 必ず有効なJSON形式で出力すること`;
 
-            // 【完全修正】正しい最新モデル「gemini-2.5-flash」を指定し、強制的にJSONで出力させます
             const res = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.apiKey}`,
                 {
@@ -1382,9 +1405,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { 
-                            temperature: 0.9, 
-                            maxOutputTokens: 1500,
+                        generationConfig: {
+                            temperature: 0.9,
+                            maxOutputTokens: 4096,
                             responseMimeType: "application/json"
                         }
                     })
@@ -1398,18 +1421,12 @@
 
             const data = await res.json();
             const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            
-            // 余計なマークダウン記号などを取り除く
             const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-            
-            // 【完全修正】AIが勝手に混ぜた「実際の改行」を文字列から完全に消し去り、JSONパースエラーを物理的に封印します
-            const safeJsonStr = jsonStr.replace(/\n/g, "").replace(/\r/g, "");
-            const parsed = JSON.parse(safeJsonStr);
+            const parsed = JSON.parse(jsonStr);
 
-            // <br> という文字を本来の改行に戻して画面に出力します
             return parsed.map(p => ({
                 title: p.title,
-                caption: buildCaption(p.title, (p.body || '').replace(/<br>/g, '\n'), shopInfo, p.hashtags)
+                caption: buildCaption(p.title, p.body, shopInfo, p.hashtags)
             }));
         }
 
