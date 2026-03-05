@@ -1387,17 +1387,16 @@
 [
   {
     "title": "投稿のタイトル（20文字以内・絵文字OK）",
-    "body": "投稿本文（3〜5行。改行は\\nで表現）",
+    "body": "投稿本文（3〜5行。改行は必ず \\n を使用してください）",
     "hashtags": "#ハッシュタグ1 #ハッシュタグ2 ... （5〜8個）"
-  },
-  ...
+  }
 ]
 
 【ルール】
 - 各パターンで異なるアプローチを取ること
 - 本文は自然な日本語で、${target}に刺さる表現を使うこと
 - ハッシュタグは店名・料理ジャンル・地域名などを含めること
-- JSON以外の文字は出力しないこと`;
+- 必ず有効なJSON形式で出力すること`;
 
             const res = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.apiKey}`,
@@ -1406,7 +1405,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.9, maxOutputTokens: 1500 }
+                        generationConfig: {
+                            temperature: 0.9,
+                            maxOutputTokens: 1500,
+                            responseMimeType: "application/json"
+                        }
                     })
                 }
             );
