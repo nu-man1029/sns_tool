@@ -1346,7 +1346,6 @@
                 season: 'シーズン型（季節・イベント）'
             };
 
-            // 【重要】AIに「本当の改行（エンター）」をさせず、「<br>」という文字に置き換えさせることでJSONエラーを完全に防ぎます
             const prompt = `あなたは飲食店のSNS投稿文を作るプロのコピーライターです。
 以下の情報をもとに、Instagram投稿文を3パターン生成してください。
 
@@ -1375,9 +1374,9 @@
 - 本文は自然な日本語で、${target}に刺さる表現を使うこと
 - JSONの形式エラーを防ぐため、データの中に実際の改行（エンター）は含めないでください。`;
 
-            // 【重要】安定版の gemini-1.5-flash を指定し、APIにJSON出力を強制します
+            // 【完全修正】正しい最新モデル「gemini-2.5-flash」を指定し、強制的にJSONで出力させます
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${settings.apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1400,11 +1399,14 @@
             const data = await res.json();
             const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
             
-            // クリーニングしてパース
+            // 余計なマークダウン記号などを取り除く
             const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-            const parsed = JSON.parse(jsonStr);
+            
+            // 【完全修正】AIが勝手に混ぜた「実際の改行」を文字列から完全に消し去り、JSONパースエラーを物理的に封印します
+            const safeJsonStr = jsonStr.replace(/\n/g, "").replace(/\r/g, "");
+            const parsed = JSON.parse(safeJsonStr);
 
-            // ここで <br> を本当の改行に戻して組み立てます
+            // <br> という文字を本来の改行に戻して画面に出力します
             return parsed.map(p => ({
                 title: p.title,
                 caption: buildCaption(p.title, (p.body || '').replace(/<br>/g, '\n'), shopInfo, p.hashtags)
