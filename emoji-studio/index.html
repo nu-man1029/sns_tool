@@ -109,6 +109,21 @@
 
       <!-- Right: Settings -->
       <div class="edit-settings">
+        <!-- AI 提案 (Phase 3) -->
+        <div class="setting-group ai-suggest">
+          <div class="ai-suggest-header">
+            <label class="setting-label">
+              AIに動きを提案させる
+              <span class="setting-value">Vision API</span>
+            </label>
+            <button type="button" class="ai-suggest-btn" id="btn-ai-suggest">
+              <span class="ai-icon">✨</span>
+              <span class="ai-btn-text">3案を提案</span>
+            </button>
+          </div>
+          <div class="ai-suggest-body" id="ai-suggest-body" hidden></div>
+        </div>
+
         <div class="setting-group">
           <label class="setting-label">アニメーションプリセット</label>
           <div class="anim-presets" id="anim-presets">

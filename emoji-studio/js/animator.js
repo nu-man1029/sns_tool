@@ -310,8 +310,93 @@
         else this.startPlay();
       });
       document.getElementById('btn-restart').addEventListener('click', () => this.restart());
+
+      // AI 提案
+      document.getElementById('btn-ai-suggest').addEventListener('click', () => this.requestAISuggestions());
+    },
+
+    /* ---------- Phase 3: AI 提案 ---------- */
+    async requestAISuggestions() {
+      const studio = window.EmojiStudio;
+      if (this.slotIndex == null) return;
+      const slot = studio.state.slots[this.slotIndex];
+      if (!slot || !slot.image) return;
+
+      const btn = document.getElementById('btn-ai-suggest');
+      const body = document.getElementById('ai-suggest-body');
+      const txt = btn.querySelector('.ai-btn-text');
+
+      btn.disabled = true;
+      btn.classList.add('is-loading');
+      txt.textContent = '解析中…';
+      body.hidden = false;
+      body.innerHTML = '<div class="ai-loading">画像を解析しています…</div>';
+
+      try {
+        const res = await fetch('api/suggest.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: slot.image, mode: studio.state.mode }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || !Array.isArray(data.suggestions)) {
+          const msg = (data && (data.message || data.error)) || `HTTP ${res.status}`;
+          throw new Error(msg);
+        }
+        this.renderSuggestions(data.suggestions);
+      } catch (err) {
+        body.innerHTML =
+          `<div class="ai-error">提案に失敗しました: ${escapeHtml(err.message || String(err))}</div>`;
+        studio.showToast('AI提案に失敗しました', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+        txt.textContent = '3案を再提案';
+      }
+    },
+
+    renderSuggestions(list) {
+      const presetLabel = (p) => (PRESETS[p] && PRESETS[p].label) || p;
+      const html = list.map((s, i) => `
+        <div class="ai-card" data-idx="${i}">
+          <div class="ai-card-head">
+            <span class="ai-card-num">#${i + 1}</span>
+            <span class="ai-card-preset">${escapeHtml(presetLabel(s.preset))}</span>
+          </div>
+          <div class="ai-card-meta">
+            ${s.durationMs}ms / ${s.intensity}% / ${s.fps}fps
+          </div>
+          <p class="ai-card-reason">${escapeHtml(s.reason || '')}</p>
+          <button type="button" class="ai-card-apply" data-idx="${i}">この設定を適用</button>
+        </div>
+      `).join('');
+      const body = document.getElementById('ai-suggest-body');
+      body.innerHTML = html;
+      body.querySelectorAll('.ai-card-apply').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx, 10);
+          const s = list[idx];
+          this.settings = {
+            preset: s.preset,
+            durationMs: s.durationMs,
+            intensity: s.intensity,
+            fps: s.fps,
+          };
+          this.syncUIFromSettings();
+          this.restart();
+          // 選択中マーク
+          body.querySelectorAll('.ai-card').forEach(c => c.classList.remove('is-applied'));
+          body.querySelector(`.ai-card[data-idx="${idx}"]`)?.classList.add('is-applied');
+        });
+      });
     },
   };
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
 
   document.addEventListener('DOMContentLoaded', () => editor.init());
 
