@@ -1,0 +1,37 @@
+name: Deploy emoji-studio via FTP
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'emoji-studio/**'
+      - '.github/workflows/deploy-emoji-studio.yml'
+  workflow_dispatch:
+
+jobs:
+  ftp-deploy:
+    name: FTP Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync emoji-studio to FTP server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./emoji-studio/
+          server-dir: /home/rs-kensin/www/tools/emoji-studio/
+          dangerous-clean-slate: false
+          log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.DS_Store
+            **/Thumbs.db
