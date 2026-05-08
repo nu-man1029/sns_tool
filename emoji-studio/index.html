@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>アニメーション絵文字スタジオ</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<!-- ===== モード選択モーダル ===== -->
+<div id="mode-modal" class="modal-overlay">
+  <div class="modal-card">
+    <h1 class="modal-title">作るものを選んでください</h1>
+    <p class="modal-sub">サイズ・ファイル名・容量ルールが切り替わります</p>
+    <div class="mode-options">
+      <button class="mode-btn" data-mode="sticker">
+        <div class="mode-icon">🎨</div>
+        <div class="mode-name">アニメーションスタンプ</div>
+        <div class="mode-spec">320×270px / 1個300KB以下<br>ファイル名: 01.png〜40.png</div>
+      </button>
+      <button class="mode-btn" data-mode="emoji">
+        <div class="mode-icon">😊</div>
+        <div class="mode-name">アニメーション絵文字</div>
+        <div class="mode-spec">240×240px / 1個1MB以下<br>ファイル名: 001.png〜040.png</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ヘッダー ===== -->
+<header class="app-header">
+  <div class="header-left">
+    <span class="brand-mark">●</span>
+    <span class="brand-name">EMOJI STUDIO</span>
+    <span class="mode-badge" id="mode-badge">未選択</span>
+  </div>
+  <div class="header-right">
+    <span class="save-status" id="save-status">— 未保存 —</span>
+  </div>
+</header>
+
+<!-- ===== メイン ===== -->
+<main class="app-main">
+
+  <!-- アップロードゾーン -->
+  <section class="upload-section">
+    <div class="upload-zone" id="upload-zone">
+      <div class="upload-inner">
+        <div class="upload-icon">⬆</div>
+        <div class="upload-text">
+          ここに画像（PNG）またはZIPをドラッグ＆ドロップ<br>
+          <span class="upload-sub">またはクリックしてファイル選択（最大40枚）</span>
+        </div>
+        <input type="file" id="file-input" accept="image/png,application/zip,.zip" multiple hidden>
+      </div>
+    </div>
+    <div class="upload-info">
+      <span id="upload-count">0 / 40 枚</span>
+      <button class="btn-clear" id="btn-clear">すべてクリア</button>
+    </div>
+  </section>
+
+  <!-- 40スロットグリッド -->
+  <section class="grid-section">
+    <div class="grid-header">
+      <h2 class="grid-title">スロット一覧</h2>
+      <div class="grid-legend">
+        <span class="legend-item"><span class="dot dot-empty"></span>未設定</span>
+        <span class="legend-item"><span class="dot dot-editing"></span>設定中</span>
+        <span class="legend-item"><span class="dot dot-done"></span>確認済</span>
+      </div>
+    </div>
+    <div class="slot-grid" id="slot-grid"></div>
+  </section>
+
+</main>
+
+<!-- ===== フッター ===== -->
+<footer class="app-footer">
+  <button class="btn-primary" id="btn-download-all" disabled>一括ダウンロード（ZIP）</button>
+</footer>
+
+<!-- ===== JS ===== -->
+<script src="js/uploader.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
