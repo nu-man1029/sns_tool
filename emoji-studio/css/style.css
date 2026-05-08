@@ -351,6 +351,110 @@ h1, h2, h3 { margin: 0; }
   accent-color: var(--brand);
 }
 
+/* --- AI 提案 (Phase 3) --- */
+.ai-suggest {
+  background: linear-gradient(135deg, #fff7ec 0%, #fff 100%);
+  border: 1px solid #f6dcb4;
+  border-radius: 8px;
+  padding: 12px;
+}
+.ai-suggest-header {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px;
+}
+.ai-suggest-btn {
+  background: var(--brand);
+  color: #fff;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s;
+}
+.ai-suggest-btn:hover:not(:disabled) { background: var(--brand-dark); }
+.ai-suggest-btn:disabled { background: #d4cfc4; cursor: not-allowed; }
+.ai-suggest-btn .ai-icon { font-size: 14px; }
+.ai-suggest-btn.is-loading .ai-icon {
+  animation: ai-spin 1s linear infinite;
+  display: inline-block;
+}
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+
+.ai-suggest-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ai-loading, .ai-error {
+  font-size: 12px;
+  color: var(--text-sub);
+  padding: 14px;
+  text-align: center;
+  background: #fff;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+.ai-error { color: #c0392b; border-color: #f3c8c2; background: #fdf3f1; }
+
+.ai-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-card.is-applied {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(241, 130, 0, 0.15);
+}
+.ai-card-head {
+  display: flex; align-items: center; gap: 8px;
+}
+.ai-card-num {
+  background: var(--brand-light);
+  color: var(--brand-dark);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.ai-card-preset {
+  font-size: 13px;
+  font-weight: 700;
+}
+.ai-card-meta {
+  font-size: 11px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.ai-card-reason {
+  font-size: 12px;
+  color: var(--text);
+  margin: 2px 0 6px;
+  line-height: 1.5;
+}
+.ai-card-apply {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand);
+  border: 1px solid var(--brand);
+  background: #fff;
+  border-radius: 5px;
+  padding: 4px 10px;
+  transition: all 0.12s;
+}
+.ai-card-apply:hover { background: var(--brand); color: #fff; }
+.ai-card.is-applied .ai-card-apply {
+  background: var(--brand);
+  color: #fff;
+}
+
 .edit-footer {
   padding: 14px 22px;
   border-top: 1px solid var(--border);
