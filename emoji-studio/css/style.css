@@ -193,14 +193,66 @@ h1, h2, h3 { margin: 0; }
   font-size: 22px;
 }
 
+/* --- Phase 4: 選択チェックボックス & 個別DL --- */
+.slot.is-selected {
+  outline: 3px solid var(--brand);
+  outline-offset: -3px;
+}
+.slot-check {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 20px; height: 20px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.92);
+  border: 1.5px solid var(--border);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--brand);
+  line-height: 1;
+  z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.slot-check:hover { border-color: var(--brand); }
+.slot.is-selected .slot-check {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.slot-dl {
+  position: absolute;
+  bottom: 4px; left: 4px;
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand);
+  line-height: 1;
+  z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+  opacity: 0;
+}
+.slot[data-status="done"]:hover .slot-dl,
+.slot-dl:focus { opacity: 1; }
+.slot-dl:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+
 /* ===== Footer ===== */
 .app-footer {
   position: fixed; bottom: 0; left: 0; right: 0;
   background: var(--card);
   border-top: 1px solid var(--border);
   padding: 12px 24px;
-  display: flex; justify-content: flex-end; gap: 10px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px;
   z-index: 100;
+}
+.selection-info {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
 }
 .btn-primary {
   background: var(--brand);
@@ -459,9 +511,17 @@ h1, h2, h3 { margin: 0; }
   padding: 14px 22px;
   border-top: 1px solid var(--border);
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 10px;
 }
+.export-size {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+.export-size.is-over { color: #c0392b; font-weight: 700; }
 .btn-secondary {
   background: #fff;
   border: 1px solid var(--border);

@@ -9,7 +9,7 @@
    * 各プリセットは (ctx, drawImage(t, k), t, k) を受け取り、
    * canvas の描画を行う関数。
    *   t : 0..1 の正規化時刻（ループ）
-   *   k : 強度倍率（0.2〜2.0 想定。slider 100% = 1.0）
+   *   k : 強度倍率（0.2～2.0 想定。slider 100% = 1.0）
    * drawImage(transformFn) は letterbox 描画ヘルパ。
    */
   const PRESETS = {
@@ -313,6 +313,44 @@
 
       // AI 提案
       document.getElementById('btn-ai-suggest').addEventListener('click', () => this.requestAISuggestions());
+
+      // APNG書き出し (Phase 4)
+      document.getElementById('btn-edit-export').addEventListener('click', () => this.exportThis());
+    },
+
+    /* ---------- Phase 4: 個別APNG書き出し ---------- */
+    async exportThis() {
+      const studio   = window.EmojiStudio;
+      const exporter = window.EmojiStudioExporter;
+      if (!exporter || this.slotIndex == null) return;
+      const slot = studio.state.slots[this.slotIndex];
+      if (!slot || !slot.image) return;
+
+      // 編集中の最新設定を反映してから書き出す（未保存でも書き出せる）
+      const tempAnim = slot.animation;
+      slot.animation = { ...this.settings };
+
+      const btn = document.getElementById('btn-edit-export');
+      const sizeEl = document.getElementById('export-size');
+      btn.disabled = true;
+      btn.textContent = '生成中…';
+      sizeEl.textContent = '';
+
+      try {
+        const r = await exporter.exportOne(this.slotIndex);
+        const conf = studio.MODE_CONFIG[studio.state.mode];
+        const sizeKB = (r.size / 1024).toFixed(1);
+        const over = r.size > conf.maxKB * 1024;
+        sizeEl.textContent = `${r.name} : ${sizeKB} KB${over ? ' ⚠上限超過' : ''}`;
+        sizeEl.className = 'export-size' + (over ? ' is-over' : '');
+        studio.showToast(`${r.name} を保存 (${sizeKB}KB)`, over ? 'error' : '');
+      } catch (err) {
+        studio.showToast(`書き出し失敗: ${err.message || err}`, 'error');
+      } finally {
+        slot.animation = tempAnim; // 確定前の状態に戻す
+        btn.disabled = false;
+        btn.textContent = 'APNG書き出し';
+      }
     },
 
     /* ---------- Phase 3: AI 提案 ---------- */
