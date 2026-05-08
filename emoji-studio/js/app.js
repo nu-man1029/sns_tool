@@ -119,8 +119,9 @@ function onSlotClick(index) {
     showToast('画像が未設定です。アップロードしてください。');
     return;
   }
-  // Phase 2 で編集モーダルを開く
-  showToast(`スロット ${index + 1} は Phase 2 で編集対応`);
+  if (window.EmojiStudioAnimator) {
+    window.EmojiStudioAnimator.open(index);
+  }
 }
 
 /* ============================================================
@@ -180,5 +181,7 @@ window.EmojiStudio = {
   setSlotImage,
   findNextEmptySlot,
   showToast,
+  renderGrid,
   MAX_SLOTS,
+  MODE_CONFIG,
 };
