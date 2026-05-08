@@ -1,0 +1,15 @@
+# API config (実APIキーが入る)
+emoji-studio/api/config.php
+
+# 一時データ
+emoji-studio/uploads/*
+!emoji-studio/uploads/.htaccess
+emoji-studio/data/*
+!emoji-studio/data/.htaccess
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
