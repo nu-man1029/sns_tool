@@ -1,0 +1,47 @@
+name: Deploy emoji-studio to Sakura
+
+on:
+  push:
+    branches:
+      - "claude/emoji-studio-**"
+      - main
+    paths:
+      - "emoji-studio/**"
+      - ".github/workflows/deploy-emoji-studio.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-emoji-studio
+  cancel-in-progress: true
+
+jobs:
+  ftp-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: FTP Deploy to Sakura
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.SAKURA_FTP_HOST }}
+          username: ${{ secrets.SAKURA_FTP_USER }}
+          password: ${{ secrets.SAKURA_FTP_PASS }}
+          protocol: ftp
+          port: 21
+          local-dir: ./emoji-studio/
+          server-dir: /home/rs-kensin/www/tools/emoji-studio/
+          # サーバー側で生成・保存されるデータは消さない
+          # api/config.php は実APIキー入りなので絶対上書きしない
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.DS_Store
+            **/Thumbs.db
+            **/node_modules/**
+            api/config.php
+            data/**
+            uploads/**
+
+      - name: Done
+        run: echo "Deployed to https://tools.kensin-rs.com/emoji-studio/"
