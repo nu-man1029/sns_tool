@@ -37,6 +37,7 @@ function createEmptySlots() {
       image: null,      // dataURL
       fileName: null,
       animation: null,  // Phase 2 以降
+      selected: false,  // Phase 4: ZIP選択用
     });
   }
   return arr;
@@ -85,18 +86,68 @@ function renderGrid() {
     el.dataset.index = i;
     el.dataset.status = slot.status;
     if (!slot.image) el.classList.add('is-empty');
+    if (slot.selected && slot.status === 'done') el.classList.add('is-selected');
+
+    const checkboxHTML = (slot.status === 'done')
+      ? `<button class="slot-check" data-i="${i}" type="button" aria-label="選択">${slot.selected ? '✓' : ''}</button>`
+      : '';
+    const dlHTML = (slot.status === 'done')
+      ? `<button class="slot-dl" data-i="${i}" type="button" title="このスロットをAPNGでDL" aria-label="ダウンロード">⬇</button>`
+      : '';
 
     el.innerHTML = `
       <span class="slot-number">${String(i + 1).padStart(2, '0')}</span>
+      ${checkboxHTML}
+      ${dlHTML}
       ${slot.image
         ? `<img class="slot-image" src="${slot.image}" alt="slot-${i + 1}">`
         : `<span class="slot-placeholder">+</span>`}
       <span class="slot-status" title="${slotStatusLabel(slot.status)}"></span>
     `;
-    el.addEventListener('click', () => onSlotClick(i));
+
+    el.addEventListener('click', (e) => {
+      const target = e.target;
+      if (target.classList.contains('slot-check')) {
+        e.stopPropagation();
+        toggleSlotSelection(i);
+        return;
+      }
+      if (target.classList.contains('slot-dl')) {
+        e.stopPropagation();
+        downloadSingle(i);
+        return;
+      }
+      onSlotClick(i);
+    });
     grid.appendChild(el);
   });
   updateUploadCount();
+}
+
+function toggleSlotSelection(i) {
+  const slot = state.slots[i];
+  if (slot.status !== 'done') return;
+  slot.selected = !slot.selected;
+  renderGrid();
+}
+
+async function downloadSingle(i) {
+  const exporter = window.EmojiStudioExporter;
+  if (!exporter) return;
+  try {
+    showToast('APNG生成中…');
+    const r = await exporter.exportOne(i);
+    const conf = MODE_CONFIG[state.mode];
+    const sizeKB = (r.size / 1024).toFixed(1);
+    const over = r.size > conf.maxKB * 1024;
+    showToast(
+      `${r.name} を保存 (${sizeKB}KB${over ? ' ⚠上限超過' : ''})`,
+      over ? 'error' : ''
+    );
+  } catch (err) {
+    console.error(err);
+    showToast(`書き出し失敗: ${err.message || err}`, 'error');
+  }
 }
 
 function slotStatusLabel(s) {
@@ -106,8 +157,18 @@ function slotStatusLabel(s) {
 function updateUploadCount() {
   const filled = state.slots.filter(s => s.image).length;
   document.getElementById('upload-count').textContent = `${filled} / ${MAX_SLOTS} 枚`;
+
+  const doneCount = state.slots.filter(s => s.status === 'done').length;
+  const selCount  = state.slots.filter(s => s.selected && s.status === 'done').length;
+  const info = document.getElementById('selection-info');
+  if (info) info.textContent = `完了 ${doneCount} / 選択 ${selCount}`;
+
   const btnAll = document.getElementById('btn-download-all');
-  btnAll.disabled = state.slots.every(s => s.status !== 'done');
+  if (btnAll) btnAll.disabled = doneCount === 0;
+  const btnSel = document.getElementById('btn-download-selected');
+  if (btnSel) btnSel.disabled = selCount === 0;
+  const btnSelectAll = document.getElementById('btn-select-all');
+  if (btnSelectAll) btnSelectAll.disabled = doneCount === 0;
 }
 
 /* ============================================================
@@ -152,8 +213,34 @@ function bindGlobalEvents() {
     showToast('クリアしました');
   });
 
-  document.getElementById('btn-download-all').addEventListener('click', () => {
-    showToast('一括ダウンロードは Phase 4 で実装');
+  document.getElementById('btn-select-all').addEventListener('click', () => {
+    const doneSlots = state.slots.filter(s => s.status === 'done');
+    if (!doneSlots.length) return;
+    const allSelected = doneSlots.every(s => s.selected);
+    state.slots.forEach(s => {
+      s.selected = (s.status === 'done') ? !allSelected : false;
+    });
+    renderGrid();
+  });
+
+  document.getElementById('btn-download-selected').addEventListener('click', async () => {
+    const exp = window.EmojiStudioExporter;
+    if (!exp) return;
+    const btn = document.getElementById('btn-download-selected');
+    btn.disabled = true;
+    try { await exp.exportSelected(); }
+    catch (err) { showToast(`選択ZIP DL 失敗: ${err.message || err}`, 'error'); }
+    finally { updateUploadCount(); }
+  });
+
+  document.getElementById('btn-download-all').addEventListener('click', async () => {
+    const exp = window.EmojiStudioExporter;
+    if (!exp) return;
+    const btn = document.getElementById('btn-download-all');
+    btn.disabled = true;
+    try { await exp.exportAllDone(); }
+    catch (err) { showToast(`一括ZIP DL 失敗: ${err.message || err}`, 'error'); }
+    finally { updateUploadCount(); }
   });
 }
 
