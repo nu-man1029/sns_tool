@@ -99,9 +99,13 @@ function renderGrid() {
     const dlHTML = (slot.status === 'done')
       ? `<button class="slot-dl" data-i="${i}" type="button" title="このスロットをAPNGでDL" aria-label="ダウンロード">⬇</button>`
       : '';
+    const removeHTML = slot.image
+      ? `<button class="slot-remove" data-i="${i}" type="button" title="このスロットを削除" aria-label="削除">×</button>`
+      : '';
 
     el.innerHTML = `
       <span class="slot-number">${String(i + 1).padStart(2, '0')}</span>
+      ${removeHTML}
       ${checkboxHTML}
       ${dlHTML}
       ${slot.image
@@ -112,6 +116,11 @@ function renderGrid() {
 
     el.addEventListener('click', (e) => {
       const target = e.target;
+      if (target.classList.contains('slot-remove')) {
+        e.stopPropagation();
+        removeSlot(i);
+        return;
+      }
       if (target.classList.contains('slot-check')) {
         e.stopPropagation();
         toggleSlotSelection(i);
@@ -134,6 +143,20 @@ function toggleSlotSelection(i) {
   if (slot.status !== 'done') return;
   slot.selected = !slot.selected;
   renderGrid();
+}
+
+function removeSlot(i) {
+  const slot = state.slots[i];
+  if (!slot || !slot.image) return;
+  // 番号は詰めない: そのスロットだけ空に戻す
+  slot.image     = null;
+  slot.fileName  = null;
+  slot.animation = null;
+  slot.selected  = false;
+  slot.status    = 'empty';
+  renderGrid();
+  showToast(`スロット ${String(i + 1).padStart(2, '0')} を削除しました`);
+  notifyDirty();
 }
 
 async function downloadSingle(i) {

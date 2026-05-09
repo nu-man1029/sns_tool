@@ -372,10 +372,16 @@
       body.innerHTML = '<div class="ai-loading">画像を解析しています…</div>';
 
       try {
+        const instructionEl = document.getElementById('ai-instruction');
+        const instruction = (instructionEl && instructionEl.value || '').trim();
         const res = await fetch('api/suggest.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: slot.image, mode: studio.state.mode }),
+          body: JSON.stringify({
+            image: slot.image,
+            mode: studio.state.mode,
+            instruction,
+          }),
         });
         const data = await res.json().catch(() => null);
         if (!res.ok || !data || !Array.isArray(data.suggestions)) {
@@ -394,40 +400,22 @@
       }
     },
 
+    /**
+     * Phase 6: 動きの方向性アドバイス（読み物カード）。自動適用はしない。
+     */
     renderSuggestions(list) {
-      const presetLabel = (p) => (PRESETS[p] && PRESETS[p].label) || p;
       const html = list.map((s, i) => `
         <div class="ai-card" data-idx="${i}">
           <div class="ai-card-head">
             <span class="ai-card-num">#${i + 1}</span>
-            <span class="ai-card-preset">${escapeHtml(presetLabel(s.preset))}</span>
+            <span class="ai-card-title">${escapeHtml(s.title || '')}</span>
           </div>
-          <div class="ai-card-meta">
-            ${s.durationMs}ms / ${s.intensity}% / ${s.fps}fps
-          </div>
-          <p class="ai-card-reason">${escapeHtml(s.reason || '')}</p>
-          <button type="button" class="ai-card-apply" data-idx="${i}">この設定を適用</button>
+          <p class="ai-card-desc">${escapeHtml(s.description || '')}</p>
+          ${s.hint ? `<div class="ai-card-hint"><span class="ai-card-hint-label">パラメータ目安</span> ${escapeHtml(s.hint)}</div>` : ''}
         </div>
       `).join('');
       const body = document.getElementById('ai-suggest-body');
       body.innerHTML = html;
-      body.querySelectorAll('.ai-card-apply').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idx = parseInt(btn.dataset.idx, 10);
-          const s = list[idx];
-          this.settings = {
-            preset: s.preset,
-            durationMs: s.durationMs,
-            intensity: s.intensity,
-            fps: s.fps,
-          };
-          this.syncUIFromSettings();
-          this.restart();
-          // 選択中マーク
-          body.querySelectorAll('.ai-card').forEach(c => c.classList.remove('is-applied'));
-          body.querySelector(`.ai-card[data-idx="${idx}"]`)?.classList.add('is-applied');
-        });
-      });
     },
   };
 
