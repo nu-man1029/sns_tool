@@ -146,6 +146,7 @@
       slot.status = 'done';
       studio.renderGrid();
       studio.showToast('アニメ設定を保存しました');
+      if (window.EmojiStudioStorage) window.EmojiStudioStorage.markDirty();
       this.close();
     },
 

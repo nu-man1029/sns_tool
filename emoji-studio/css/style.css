@@ -82,6 +82,32 @@ h1, h2, h3 { margin: 0; }
   font-weight: 600;
 }
 .save-status { font-size: 12px; color: var(--text-sub); }
+.save-status.is-error { color: #c0392b; font-weight: 700; }
+
+/* --- Phase 5: ヘッダー保存UI --- */
+.header-right { display: flex; align-items: center; gap: 10px; }
+.header-btn {
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  transition: all 0.12s;
+}
+.header-btn:hover { border-color: var(--brand); color: var(--brand); }
+.project-id {
+  font-size: 11px;
+  font-family: ui-monospace, "SF Mono", "Menlo", monospace;
+  color: var(--brand-dark);
+  background: var(--brand-light);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.project-id.hidden { display: none; }
 
 /* ===== Main ===== */
 .app-main {
