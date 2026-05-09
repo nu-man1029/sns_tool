@@ -117,11 +117,11 @@
 
       <!-- Right: Settings -->
       <div class="edit-settings">
-        <!-- AI 提案 (Phase 3) -->
+        <!-- AI 提案 (動きの方向性アドバイス) -->
         <div class="setting-group ai-suggest">
           <div class="ai-suggest-header">
             <label class="setting-label">
-              AIに動きを提案させる
+              AIに動きの方向性を相談
               <span class="setting-value">Vision API</span>
             </label>
             <button type="button" class="ai-suggest-btn" id="btn-ai-suggest">
@@ -129,6 +129,8 @@
               <span class="ai-btn-text">3案を提案</span>
             </button>
           </div>
+          <textarea id="ai-instruction" class="ai-instruction" rows="2"
+            placeholder="（任意）追加指示  例：指だけを動かしたい / 控えめに揺らす"></textarea>
           <div class="ai-suggest-body" id="ai-suggest-body" hidden></div>
         </div>
 
