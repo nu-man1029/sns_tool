@@ -265,6 +265,29 @@ h1, h2, h3 { margin: 0; }
 .slot-dl:focus { opacity: 1; }
 .slot-dl:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
 
+/* --- スロット削除 (×) --- */
+.slot-remove {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(34, 34, 34, 0.55);
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  z-index: 4;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: all 0.12s;
+}
+.slot:hover .slot-remove,
+.slot-remove:focus { opacity: 1; }
+.slot-remove:hover { background: #c0392b; }
+/* done の選択チェックは × の左隣に並ぶよう右にずらす */
+.slot[data-status="done"] .slot-check { right: 28px; }
+
 /* ===== Footer ===== */
 .app-footer {
   position: fixed; bottom: 0; left: 0; right: 0;
@@ -461,10 +484,30 @@ h1, h2, h3 { margin: 0; }
 }
 @keyframes ai-spin { to { transform: rotate(360deg); } }
 
+.ai-instruction {
+  width: 100%;
+  margin-top: 8px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  resize: vertical;
+  min-height: 44px;
+  max-height: 160px;
+}
+.ai-instruction:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(241, 130, 0, 0.15);
+}
+
 .ai-suggest-body {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 .ai-loading, .ai-error {
   font-size: 12px;
@@ -484,11 +527,7 @@ h1, h2, h3 { margin: 0; }
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-.ai-card.is-applied {
-  border-color: var(--brand);
-  box-shadow: 0 0 0 2px rgba(241, 130, 0, 0.15);
+  gap: 5px;
 }
 .ai-card-head {
   display: flex; align-items: center; gap: 8px;
@@ -501,36 +540,30 @@ h1, h2, h3 { margin: 0; }
   padding: 1px 7px;
   border-radius: 999px;
 }
-.ai-card-preset {
+.ai-card-title {
   font-size: 13px;
   font-weight: 700;
+  color: var(--text);
 }
-.ai-card-meta {
-  font-size: 11px;
-  color: var(--text-sub);
-  font-variant-numeric: tabular-nums;
-}
-.ai-card-reason {
+.ai-card-desc {
   font-size: 12px;
   color: var(--text);
-  margin: 2px 0 6px;
+  margin: 2px 0;
+  line-height: 1.6;
+}
+.ai-card-hint {
+  font-size: 11px;
+  color: var(--text-sub);
+  background: #f8f5ee;
+  border-radius: 5px;
+  padding: 5px 8px;
   line-height: 1.5;
 }
-.ai-card-apply {
-  align-self: flex-start;
-  font-size: 11px;
+.ai-card-hint-label {
+  display: inline-block;
   font-weight: 700;
-  color: var(--brand);
-  border: 1px solid var(--brand);
-  background: #fff;
-  border-radius: 5px;
-  padding: 4px 10px;
-  transition: all 0.12s;
-}
-.ai-card-apply:hover { background: var(--brand); color: #fff; }
-.ai-card.is-applied .ai-card-apply {
-  background: var(--brand);
-  color: #fff;
+  color: var(--brand-dark);
+  margin-right: 4px;
 }
 
 .edit-footer {
