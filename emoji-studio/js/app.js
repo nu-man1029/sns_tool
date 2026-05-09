@@ -72,6 +72,11 @@ function setMode(mode) {
   const conf = MODE_CONFIG[mode];
   const badge = document.getElementById('mode-badge');
   badge.textContent = `${conf.label} ${conf.width}×${conf.height}`;
+  notifyDirty();
+}
+
+function notifyDirty() {
+  if (window.EmojiStudioStorage) window.EmojiStudioStorage.markDirty();
 }
 
 /* ============================================================
@@ -195,6 +200,7 @@ function setSlotImage(index, dataURL, fileName) {
   slot.fileName = fileName;
   slot.status = 'editing';
   renderGrid();
+  notifyDirty();
 }
 
 function findNextEmptySlot() {
@@ -211,6 +217,7 @@ function bindGlobalEvents() {
     state.slots = createEmptySlots();
     renderGrid();
     showToast('クリアしました');
+    notifyDirty();
   });
 
   document.getElementById('btn-select-all').addEventListener('click', () => {
