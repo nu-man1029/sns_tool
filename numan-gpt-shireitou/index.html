@@ -411,6 +411,16 @@ var EXTRA_OPTIONS = [
   "高級感を出す","親しみやすくする","売り込み感を減らす","初心者にも分かるようにする",
   "スマホで見やすくする","NGチェックも出す","仮置き一覧も出す","その他"
 ];
+/* 施工を選んだ場合のみ追加で出す条件 */
+var KOJI_EXTRA_OPTIONS = ["AIパース提案を入れる","仕上がりのズレを減らす訴求を入れる","完成前に見える化する訴求を入れる"];
+
+function extraOptionsForBusiness(business){
+  if(business === "施工"){
+    var base = EXTRA_OPTIONS.slice(0, -1); // 「その他」を除いた本体
+    return base.concat(KOJI_EXTRA_OPTIONS, ["その他"]);
+  }
+  return EXTRA_OPTIONS.slice();
+}
 
 /* 事業 → E番号対応 */
 var BUSINESS_E_NUMBER = {
@@ -518,6 +528,9 @@ function renderOptions(containerId, options, field, isMultiple){
         });
         btn.classList.add("selected");
       }
+      if(field === "business"){
+        refreshExtraOptions();
+      }
       updateOtherVisibility();
       updateHomeJudgeBadge();
     });
@@ -541,12 +554,20 @@ function updateHomeJudgeBadge(){
   document.getElementById("home-judge-badge").textContent = computeJudgeText(state.business, businessOtherVal);
 }
 
+function refreshExtraOptions(){
+  var options = extraOptionsForBusiness(state.business);
+  // 事業が変わって選べなくなった条件は選択解除する
+  state.extraConditions = state.extraConditions.filter(function(c){ return options.indexOf(c) >= 0; });
+  renderOptions("opt-extra", options, "extraConditions", true);
+  markSelectedMultiple("opt-extra", state.extraConditions);
+}
+
 function initHomeScreen(){
   renderOptions("opt-business", BUSINESS_OPTIONS, "business", false);
   renderOptions("opt-outputType", OUTPUT_TYPE_OPTIONS, "outputType", false);
   renderOptions("opt-purpose", PURPOSE_OPTIONS, "purpose", false);
   renderOptions("opt-outputMode", OUTPUT_MODE_OPTIONS, "outputMode", false);
-  renderOptions("opt-extra", EXTRA_OPTIONS, "extraConditions", true);
+  refreshExtraOptions();
   updateOtherVisibility();
   updateHomeJudgeBadge();
 }
@@ -663,6 +684,10 @@ function businessSupplementRules(){
     lines.push("CTAは施工系公式LINEへの写真相談を基本にしてください。");
     lines.push("県外相談に触れる場合は以下の定型文を使ってください。");
     lines.push("「ご相談ありがとうございます。ぬーまんは三重県認定施工店のため県外の施工はお受けできませんが、お住まいの地域で確かな技術を持つ認定施工者をご紹介できます。写真を送っていただければ、その際の相談ポイントもお伝えしますので、お気軽にどうぞ。」");
+    var kojiSelected = state.extraConditions.some(function(c){ return KOJI_EXTRA_OPTIONS.indexOf(c) >= 0; });
+    if(kojiSelected){
+      lines.push("ローラーストーンの価値は、壊さず上から施工・短工期・デザイン性だけではなく、施工前にAIパースで完成イメージを見える化し、お客様と職人の認識のズレを減らせることにある。「いい感じ」という曖昧な依頼を、施工前に見える形にしてから進める提案として表現してください。");
+    }
   }else if(b === "飲食"){
     lines.push("未提供メニューは書かないでください。");
     lines.push("価格・限定数・営業日は【要確認】としてください。");
