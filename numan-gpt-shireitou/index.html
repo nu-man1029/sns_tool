@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ぬーまんGPT司令塔</title>
+<style>
+  :root{
+    --accent:#f18200;
+    --accent-light:#fdeee0;
+    --bg:#f7f7f7;
+    --card:#ffffff;
+    --text:#333333;
+    --sub:#666666;
+    --border:#dddddd;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:32px;
+  }
+  .app{
+    max-width:640px;
+    margin:0 auto;
+    padding:16px;
+  }
+  header.appbar{
+    text-align:center;
+    padding:20px 16px 12px;
+  }
+  header.appbar h1{
+    margin:0 0 4px;
+    font-size:22px;
+    color:var(--accent);
+  }
+  header.appbar p{
+    margin:0;
+    font-size:13px;
+    color:var(--sub);
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:15px;
+    margin:0 0 12px;
+    color:var(--text);
+  }
+  .hint{
+    font-size:12px;
+    color:var(--sub);
+    margin:-8px 0 12px;
+  }
+  .options{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .opt-btn{
+    flex:1 1 auto;
+    min-width:calc(50% - 8px);
+    padding:12px 10px;
+    border:2px solid var(--border);
+    border-radius:10px;
+    background:#fff;
+    color:var(--text);
+    font-size:14px;
+    text-align:center;
+    cursor:pointer;
+  }
+  .opt-btn.selected{
+    border-color:var(--accent);
+    background:var(--accent-light);
+    color:var(--text);
+    font-weight:bold;
+  }
+  textarea, input[type=text]{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px;
+    font-size:14px;
+    font-family:inherit;
+    resize:vertical;
+    color:var(--text);
+    background:#fff;
+  }
+  textarea.other-input{
+    margin-top:10px;
+  }
+  .btn-primary{
+    width:100%;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    font-size:17px;
+    font-weight:bold;
+    cursor:pointer;
+    margin-top:8px;
+  }
+  .btn-secondary{
+    width:100%;
+    background:#fff;
+    color:var(--accent);
+    border:2px solid var(--accent);
+    border-radius:14px;
+    padding:14px;
+    font-size:15px;
+    font-weight:bold;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  .btn-row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .btn-row .btn-secondary{
+    flex:1 1 auto;
+  }
+  .nav-buttons{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+  }
+  .nav-buttons button{
+    flex:1;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px;
+    font-size:13px;
+    color:var(--text);
+    cursor:pointer;
+  }
+  .prompt-box{
+    white-space:pre-wrap;
+    word-break:break-word;
+    font-size:14px;
+    line-height:1.6;
+    background:#fafafa;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:14px;
+    max-height:60vh;
+    overflow-y:auto;
+    font-family:"SFMono-Regular",Consolas,Menlo,monospace;
+  }
+  .msg{
+    font-size:13px;
+    padding:10px 12px;
+    border-radius:10px;
+    margin:10px 0;
+  }
+  .msg.info{ background:#eef6ff; color:#2b6cb0; }
+  .msg.warn{ background:#fff4e5; color:#b06a00; }
+  .msg.error{ background:#fdeaea; color:#c0392b; }
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+  .history-item{
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px;
+    margin-bottom:10px;
+    background:#fff;
+  }
+  .history-item .meta{
+    font-size:12px;
+    color:var(--sub);
+    margin-bottom:4px;
+  }
+  .history-item .title{
+    font-size:14px;
+    font-weight:bold;
+    margin-bottom:8px;
+  }
+  .fav-star{
+    float:right;
+    font-size:18px;
+    color:var(--accent);
+    cursor:pointer;
+    user-select:none;
+  }
+  .filter-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:12px;
+    font-size:13px;
+  }
+  .empty-msg{
+    text-align:center;
+    color:var(--sub);
+    font-size:14px;
+    padding:24px 0;
+  }
+  .detail-field{
+    margin-bottom:10px;
+    font-size:13px;
+  }
+  .detail-field .label{
+    color:var(--sub);
+    margin-bottom:2px;
+  }
+  .detail-field .value{
+    white-space:pre-wrap;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="appbar">
+    <h1>ぬーまんGPT司令塔</h1>
+    <p>選ぶだけで、ぬーまん専用GPTへ投げる完成プロンプトを作成</p>
+  </header>
+
+  <!-- ============ 入力画面 ============ -->
+  <section id="screen-home" class="screen active">
+
+    <div class="card">
+      <h2>事業を選ぶ</h2>
+      <div class="options" id="opt-business"></div>
+      <textarea class="other-input" id="business-other" placeholder="例：セミナー、採用、業務改善、新サービス企画" style="display:none;"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>作りたいものを選ぶ</h2>
+      <div class="options" id="opt-outputType"></div>
+      <textarea class="other-input" id="outputType-other" placeholder="作りたいものを自由に入力" style="display:none;"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>目的を選ぶ</h2>
+      <div class="options" id="opt-purpose"></div>
+      <textarea class="other-input" id="purpose-other" placeholder="目的を自由に入力" style="display:none;"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>ターゲットを書く</h2>
+      <textarea id="input-target" rows="2" placeholder="例：三重県内で外構の見た目を変えたい戸建てのお客様"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>テーマを書く</h2>
+      <textarea id="input-theme" rows="2" placeholder="例：駐車場を壊さず上からおしゃれにしたい人向けのチラシ"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>出力モードを選ぶ</h2>
+      <div class="options" id="opt-outputMode"></div>
+    </div>
+
+    <div class="card">
+      <h2>追加条件を選ぶ（複数選択可）</h2>
+      <div class="options" id="opt-extra"></div>
+      <textarea class="other-input" id="extra-other" placeholder="追加条件を自由に入力" style="display:none;"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>その他自由記述</h2>
+      <div class="hint">上記以外に伝えたいことがあれば入力してください（任意）</div>
+      <textarea id="input-freeNote" rows="3" placeholder="自由に入力してください"></textarea>
+    </div>
+
+    <button class="btn-primary" id="btn-generate">完成プロンプト生成</button>
+    <div class="nav-buttons">
+      <button id="btn-goto-history">履歴を見る</button>
+      <button id="btn-goto-favorites">お気に入りを見る</button>
+    </div>
+  </section>
+
+  <!-- ============ 完成プロンプト確認画面 ============ -->
+  <section id="screen-result" class="screen">
+    <div class="card">
+      <h2>完成プロンプト</h2>
+      <div id="result-messages"></div>
+      <div class="prompt-box" id="result-prompt"></div>
+      <button class="btn-primary" id="btn-copy">コピーする</button>
+      <div class="btn-row">
+        <button class="btn-secondary" id="btn-favorite">お気に入りに保存</button>
+        <button class="btn-secondary" id="btn-reedit">内容を引き継いで再編集</button>
+      </div>
+      <button class="btn-secondary" id="btn-back-home">入力画面に戻る</button>
+    </div>
+  </section>
+
+  <!-- ============ 履歴一覧画面 ============ -->
+  <section id="screen-history" class="screen">
+    <div class="card">
+      <h2 id="history-title">履歴一覧</h2>
+      <div class="filter-row">
+        <label>
+          <input type="checkbox" id="filter-favorite-only"> お気に入りのみ表示
+        </label>
+      </div>
+      <div id="history-list"></div>
+    </div>
+    <button class="btn-secondary" id="btn-history-back">入力画面に戻る</button>
+  </section>
+
+  <!-- ============ 詳細・再編集画面 ============ -->
+  <section id="screen-detail" class="screen">
+    <div class="card">
+      <h2>詳細</h2>
+      <div id="detail-fields"></div>
+      <div class="prompt-box" id="detail-prompt"></div>
+      <button class="btn-primary" id="btn-detail-copy">コピーする</button>
+      <div class="btn-row">
+        <button class="btn-secondary" id="btn-detail-favorite">お気に入り切替</button>
+        <button class="btn-secondary" id="btn-detail-reedit">再編集</button>
+      </div>
+      <button class="btn-secondary" id="btn-detail-delete" style="color:#c0392b;border-color:#c0392b;">削除する</button>
+      <button class="btn-secondary" id="btn-detail-back">履歴一覧に戻る</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ==========================================================
+   localStorageキー（削除・変更しないこと）
+   ========================================================== */
+var KEY_HISTORY = "numan_gpt_command_history";
+var KEY_SETTINGS = "numan_gpt_command_settings";
+var HISTORY_LIMIT = 100;
+
+/* ==========================================================
+   選択肢マスタ
+   ========================================================== */
+var BUSINESS_OPTIONS = ["施工","飲食","FX","アプリ開発","BNI","AI活用","SNS運用","YouTube","その他"];
+var OUTPUT_TYPE_OPTIONS = [
+  "チラシ","LP","Instagram投稿","リール台本","note販売ページ","公式LINE配信文",
+  "Canva指示","画像生成プロンプト","開発仕様書","Claude Code指示書","バグ修正依頼",
+  "営業文","BNI紹介文","YouTube台本","その他"
+];
+var PURPOSE_OPTIONS = [
+  "写真相談につなげる","無料パース相談につなげる","来店につなげる","note販売につなげる",
+  "Claude Codeへ渡す","SNS投稿につなげる","問い合わせにつなげる","予約につなげる",
+  "認知を広げる","使い方を説明する","提案資料にする","その他"
+];
+var OUTPUT_MODE_OPTIONS = ["通常","一発コピペ","構成だけ","本文だけ","デザイン指示だけ","Claude Code用だけ"];
+var EXTRA_OPTIONS = [
+  "不足情報は仮置き","Canva指示も出す","Claude Codeに渡せる形にする","短めにする",
+  "高級感を出す","親しみやすくする","売り込み感を減らす","初心者にも分かるようにする",
+  "スマホで見やすくする","NGチェックも出す","仮置き一覧も出す","その他"
+];
+
+/* 事業 → E番号対応 */
+var BUSINESS_E_NUMBER = {
+  "施工": "E-1",
+  "飲食": "E-2",
+  "FX": "E-3",
+  "アプリ開発": "E-4"
+};
+
+/* ==========================================================
+   状態
+   ========================================================== */
+var state = {
+  business: null, businessOther: "",
+  outputType: null, outputTypeOther: "",
+  purpose: null, purposeOther: "",
+  target: "", theme: "",
+  outputMode: null,
+  extraConditions: [], extraConditionOther: "",
+  freeNote: "",
+  editingId: null // 再編集時、上書き対象の履歴ID
+};
+
+var currentDetailId = null;
+
+/* ==========================================================
+   localStorage 読み書き
+   ========================================================== */
+function loadHistory(){
+  try{
+    var raw = localStorage.getItem(KEY_HISTORY);
+    if(!raw) return [];
+    var parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveHistory(list){
+  try{
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(list));
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function loadSettings(){
+  try{
+    var raw = localStorage.getItem(KEY_SETTINGS);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){
+    return {};
+  }
+}
+
+function saveSettings(settings){
+  try{
+    localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
+  }catch(e){}
+}
+
+/* ==========================================================
+   選択式UIの生成
+   ========================================================== */
+function renderOptions(containerId, options, field, isMultiple){
+  var container = document.getElementById(containerId);
+  container.innerHTML = "";
+  options.forEach(function(opt){
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "opt-btn";
+    btn.textContent = opt;
+    btn.addEventListener("click", function(){
+      if(isMultiple){
+        var idx = state[field].indexOf(opt);
+        if(idx >= 0){
+          state[field].splice(idx, 1);
+          btn.classList.remove("selected");
+        }else{
+          state[field].push(opt);
+          btn.classList.add("selected");
+        }
+      }else{
+        state[field] = opt;
+        Array.prototype.forEach.call(container.querySelectorAll(".opt-btn"), function(b){
+          b.classList.remove("selected");
+        });
+        btn.classList.add("selected");
+      }
+      updateOtherVisibility();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function updateOtherVisibility(){
+  toggleOther("business-other", state.business === "その他");
+  toggleOther("outputType-other", state.outputType === "その他");
+  toggleOther("purpose-other", state.purpose === "その他");
+  toggleOther("extra-other", state.extraConditions.indexOf("その他") >= 0);
+}
+
+function toggleOther(id, show){
+  document.getElementById(id).style.display = show ? "block" : "none";
+}
+
+function initHomeScreen(){
+  renderOptions("opt-business", BUSINESS_OPTIONS, "business", false);
+  renderOptions("opt-outputType", OUTPUT_TYPE_OPTIONS, "outputType", false);
+  renderOptions("opt-purpose", PURPOSE_OPTIONS, "purpose", false);
+  renderOptions("opt-outputMode", OUTPUT_MODE_OPTIONS, "outputMode", false);
+  renderOptions("opt-extra", EXTRA_OPTIONS, "extraConditions", true);
+  updateOtherVisibility();
+}
+
+/* ==========================================================
+   フォーム ⇔ state 同期
+   ========================================================== */
+function syncFreeInputs(){
+  state.businessOther = document.getElementById("business-other").value;
+  state.outputTypeOther = document.getElementById("outputType-other").value;
+  state.purposeOther = document.getElementById("purpose-other").value;
+  state.target = document.getElementById("input-target").value;
+  state.theme = document.getElementById("input-theme").value;
+  state.extraConditionOther = document.getElementById("extra-other").value;
+  state.freeNote = document.getElementById("input-freeNote").value;
+}
+
+function resetHomeForm(){
+  state = {
+    business: null, businessOther: "",
+    outputType: null, outputTypeOther: "",
+    purpose: null, purposeOther: "",
+    target: "", theme: "",
+    outputMode: null,
+    extraConditions: [], extraConditionOther: "",
+    freeNote: "",
+    editingId: null
+  };
+  document.getElementById("business-other").value = "";
+  document.getElementById("outputType-other").value = "";
+  document.getElementById("purpose-other").value = "";
+  document.getElementById("input-target").value = "";
+  document.getElementById("input-theme").value = "";
+  document.getElementById("extra-other").value = "";
+  document.getElementById("input-freeNote").value = "";
+  initHomeScreen();
+}
+
+function fillHomeFormFromRecord(rec){
+  state = {
+    business: rec.business, businessOther: rec.businessOther || "",
+    outputType: rec.outputType, outputTypeOther: rec.outputTypeOther || "",
+    purpose: rec.purpose, purposeOther: rec.purposeOther || "",
+    target: rec.target || "", theme: rec.theme || "",
+    outputMode: rec.outputMode,
+    extraConditions: (rec.extraConditions || []).slice(),
+    extraConditionOther: rec.extraConditionOther || "",
+    freeNote: rec.freeNote || "",
+    editingId: rec.id
+  };
+  initHomeScreen();
+  // 選択状態を見た目に反映
+  markSelected("opt-business", state.business);
+  markSelected("opt-outputType", state.outputType);
+  markSelected("opt-purpose", state.purpose);
+  markSelected("opt-outputMode", state.outputMode);
+  markSelectedMultiple("opt-extra", state.extraConditions);
+
+  document.getElementById("business-other").value = state.businessOther;
+  document.getElementById("outputType-other").value = state.outputTypeOther;
+  document.getElementById("purpose-other").value = state.purposeOther;
+  document.getElementById("input-target").value = state.target;
+  document.getElementById("input-theme").value = state.theme;
+  document.getElementById("extra-other").value = state.extraConditionOther;
+  document.getElementById("input-freeNote").value = state.freeNote;
+  updateOtherVisibility();
+}
+
+function markSelected(containerId, value){
+  var container = document.getElementById(containerId);
+  Array.prototype.forEach.call(container.querySelectorAll(".opt-btn"), function(b){
+    if(b.textContent === value){
+      b.classList.add("selected");
+    }else{
+      b.classList.remove("selected");
+    }
+  });
+}
+
+function markSelectedMultiple(containerId, values){
+  var container = document.getElementById(containerId);
+  Array.prototype.forEach.call(container.querySelectorAll(".opt-btn"), function(b){
+    if(values.indexOf(b.textContent) >= 0){
+      b.classList.add("selected");
+    }else{
+      b.classList.remove("selected");
+    }
+  });
+}
+
+/* ==========================================================
+   プロンプト生成ロジック
+   ========================================================== */
+function resolveOtherText(selected, otherText){
+  if(selected !== "その他") return null;
+  return otherText && otherText.trim() ? otherText.trim() : "未入力のため、選択内容から自然に仮置きしてください。";
+}
+
+function businessLabel(){
+  if(state.business === "その他"){
+    return (state.businessOther && state.businessOther.trim()) ? state.businessOther.trim() : "その他事業";
+  }
+  return state.business || "未選択";
+}
+
+function businessSupplementRules(){
+  var b = state.business;
+  var lines = [];
+  if(b === "施工"){
+    lines.push("三重県認定施工店の表記を入れてください。");
+    lines.push("金額は概算扱いとしてください。");
+    lines.push("「壊さず上から施工」に触れる場合は「※下地の状態により現地確認が必要」を添えてください。");
+    lines.push("CTAは施工系公式LINEへの写真相談を基本にしてください。");
+    lines.push("県外相談に触れる場合は以下の定型文を使ってください。");
+    lines.push("「ご相談ありがとうございます。ぬーまんは三重県認定施工店のため県外の施工はお受けできませんが、お住まいの地域で確かな技術を持つ認定施工者をご紹介できます。写真を送っていただければ、その際の相談ポイントもお伝えしますので、お気軽にどうぞ。」");
+  }else if(b === "飲食"){
+    lines.push("未提供メニューは書かないでください。");
+    lines.push("価格・限定数・営業日は【要確認】としてください。");
+    lines.push("味を断定せず、雰囲気・食感・香り・シズルで表現してください。");
+    lines.push("CTAは来店・予約・フォローのうち、目的に合うもの1つにしてください。");
+  }else if(b === "FX"){
+    lines.push("商品の役割は「見る場所を整理する」「反応候補を可視化する」「待つ場所を明確にする」の3つだけで語ってください。");
+    lines.push("売買指示や成果保証に見える表現は避けてください。");
+    lines.push("免責を独立セクションで入れてください。「投資判断はご自身の責任で行ってください。本ツールは利益を保証するものではありません。」");
+  }else if(b === "アプリ開発"){
+    lines.push("コードではなく仕様書・指示書として出してください。");
+    lines.push("実装前整理7項目を先に出してください。");
+    lines.push("既存データ・localStorageキーの削除変更をしないでください。");
+    lines.push("スマホ前提で、入力は選択式を優先してください。");
+    lines.push("専門用語を使いすぎないでください。");
+  }else if(b === "BNI"){
+    lines.push("紹介しやすい言葉にしてください。");
+    lines.push("誰に紹介すればよいかを明確にしてください。");
+    lines.push("30秒・60秒など時間指定があれば合わせてください。");
+    lines.push("実績や数字は与えられた情報のみ使ってください。");
+  }else if(b === "AI活用"){
+    lines.push("ぬーまんが実際に使う手順に落としてください。");
+    lines.push("難しい言い方を避けてください。");
+    lines.push("コピペで使える形にしてください。");
+    lines.push("ツール名や料金が未確認なら【要確認】としてください。");
+  }else if(b === "SNS運用"){
+    lines.push("スマホで読みやすくしてください。");
+    lines.push("冒頭1〜2行で止まって見てもらう内容にしてください。");
+    lines.push("CTAは1種類にしてください。");
+    lines.push("ハッシュタグは必要な場合のみ出してください。");
+  }else if(b === "YouTube"){
+    lines.push("冒頭は「毎度セメントアーティスト ぬーまんです よろしくね V」から始めてください。");
+    lines.push("話し言葉で作ってください。");
+    lines.push("見出しではなく、読めば話せる台本にしてください。");
+  }else if(b === "その他"){
+    lines.push("その他自由記述の内容を事業名として扱ってください。");
+    lines.push("既存の施工・飲食・FX・アプリ開発に当てはまらないため、汎用制作モードで進めてください。");
+    lines.push("不明点は仮置きで進め、必要なNGチェックも自分で設定してください。");
+  }
+  return lines;
+}
+
+var OUTPUT_TYPE_STRUCTURE = {
+  "チラシ": ["キャッチコピー","見出し","本文","CTA","Canva指示","NGチェック"],
+  "LP": ["ファーストビュー","悩み","解決策","特徴","流れ","FAQ","CTA","Claude Code向け構成指示"],
+  "Instagram投稿": ["1枚目の見出し","2枚目以降の構成","キャプション","CTA","Canva指示"],
+  "リール台本": ["冒頭フック","本編","締め","テロップ","CTA"],
+  "note販売ページ": ["タイトル","導入","何が得られるか","内容一覧","注意事項","CTA"],
+  "公式LINE配信文": ["1通目の本文","ボタン文言","CTA","短めの追伸"],
+  "Canva指示": ["サイズ","配色","文字優先順位","写真配置","フォント雰囲気","余白"],
+  "画像生成プロンプト": ["日本語の狙い","英語プロンプト","入れてはいけない要素","文字入れの有無","仕上がりの雰囲気"],
+  "開発仕様書": ["実装前整理7項目","画面一覧","入力項目","保存仕様","UI/UX","触ってはいけない箇所","Claude Codeへの渡し方"],
+  "Claude Code指示書": ["目的","実装範囲","ファイル構成","動作仕様","保存仕様","注意事項","完了条件"],
+  "バグ修正依頼": ["起きている問題","再現手順","期待する動き","触ってよい箇所","触ってはいけない箇所","確認項目"],
+  "営業文": ["相手","悩み","提案内容","押し売り感を減らした文面","CTA"],
+  "BNI紹介文": ["誰に紹介してほしいか","紹介しやすい一言","30秒版","60秒版","紹介依頼文"],
+  "YouTube台本": ["固定冒頭","今日のテーマ","本編","まとめ","CTA"]
+};
+
+function outputTypeStructureLines(){
+  var t = state.outputType;
+  if(t === "その他") return [];
+  var items = OUTPUT_TYPE_STRUCTURE[t];
+  if(!items) return [];
+  return ["「" + t + "」の構成要素として、以下を必ず含めてください。", items.join("／")];
+}
+
+var OUTPUT_MODE_RULES = {
+  "通常": "構成案を先に出してください。",
+  "一発コピペ": "以下の順で一括出力してください。1.構成案 2.本文全文 3.デザイン指示 4.CTA 5.NGチェック結果 6.修正チェックリスト 7.【仮置き一覧】",
+  "構成だけ": "本文を書かず、見出しと流れだけ出してください。",
+  "本文だけ": "説明や構成案を省き、使う文章だけ出してください。",
+  "デザイン指示だけ": "Canva、Claude Code、画像生成など渡し先に合わせて指示だけ出してください。",
+  "Claude Code用だけ": "コードを書かず、Claude Codeに渡すための実装指示書だけ出してください。"
+};
+
+function buildPrompt(){
+  var lines = [];
+  var eNumber = BUSINESS_E_NUMBER[state.business] || null;
+  var bLabel = businessLabel();
+  var otherWarnings = [];
+
+  var targetText = (state.target && state.target.trim()) ? state.target.trim() : null;
+  if(!targetText){
+    otherWarnings.push({type:"target", text:"ターゲットが空欄です。仮置きで進めます"});
+  }
+  var themeText = (state.theme && state.theme.trim()) ? state.theme.trim() : null;
+  if(!themeText){
+    otherWarnings.push({type:"theme", text:"テーマが空欄です。仮置きで進めます"});
+  }
+
+  lines.push("あなたは、ぬーまん専用のマーケティング制作・開発指示GPTです。");
+  lines.push("");
+  lines.push("【事業モード：" + bLabel + (eNumber ? "（" + eNumber + "）" : "（汎用制作モード）") + "】【出力モード：" + (state.outputMode || "通常") + "】【作るもの：" + (state.outputType || "未選択") + "】");
+  lines.push("");
+
+  lines.push("【事業】");
+  lines.push(bLabel + (eNumber ? "（" + eNumber + "）" : "（E番号指定なし・汎用制作モード）"));
+  lines.push("");
+
+  lines.push("【作りたいもの】");
+  lines.push(state.outputType === "その他" ? (state.outputTypeOther && state.outputTypeOther.trim() ? state.outputTypeOther.trim() : "その他（内容は下記【作りたいもののその他】参照）") : (state.outputType || "未選択"));
+  lines.push("");
+
+  lines.push("【目的】");
+  lines.push(state.purpose === "その他" ? (state.purposeOther && state.purposeOther.trim() ? state.purposeOther.trim() : "その他（内容は下記【目的のその他】参照）") : (state.purpose || "未選択"));
+  lines.push("");
+
+  lines.push("【ターゲット】");
+  lines.push(targetText ? targetText : "仮置き：ぬーまんが届けたい相手");
+  lines.push("");
+
+  lines.push("【テーマ】");
+  lines.push(themeText ? themeText : "仮置き：選択した作りたいものに合わせて提案");
+  lines.push("");
+
+  lines.push("【出力モード】");
+  lines.push(state.outputMode || "通常");
+  lines.push("");
+
+  lines.push("【追加条件】");
+  lines.push(state.extraConditions.length ? state.extraConditions.filter(function(c){return c !== "その他";}).join("／") || "特になし" : "特になし");
+  lines.push("");
+
+  // その他の自由記述をまとめる
+  var otherBlocks = [];
+  var bOther = resolveOtherText(state.business, state.businessOther);
+  if(bOther) otherBlocks.push("【事業のその他】\n" + bOther);
+  var tOther = resolveOtherText(state.outputType, state.outputTypeOther);
+  if(tOther) otherBlocks.push("【作りたいもののその他】\n" + tOther);
+  var pOther = resolveOtherText(state.purpose, state.purposeOther);
+  if(pOther) otherBlocks.push("【目的のその他】\n" + pOther);
+  var eOther = state.extraConditions.indexOf("その他") >= 0
+    ? (state.extraConditionOther && state.extraConditionOther.trim() ? state.extraConditionOther.trim() : "未入力のため、選択内容から自然に仮置きしてください。")
+    : null;
+  if(eOther) otherBlocks.push("【追加条件のその他】\n" + eOther);
+
+  if(otherBlocks.length){
+    lines.push(otherBlocks.join("\n\n"));
+    lines.push("");
+  }
+
+  lines.push("【その他条件】");
+  lines.push((state.freeNote && state.freeNote.trim()) ? state.freeNote.trim() : "特になし");
+  lines.push("");
+
+  lines.push("上記をもとに、ぬーまん向けにそのまま使える形で作成してください。");
+  lines.push("");
+
+  // 事業別補助ルール
+  var bizRules = businessSupplementRules();
+  if(bizRules.length){
+    lines.push("【事業別の注意】");
+    bizRules.forEach(function(r){ lines.push("・" + r); });
+    lines.push("");
+  }
+
+  // 作りたいもの別の構成
+  var structureLines = outputTypeStructureLines();
+  if(structureLines.length){
+    lines.push(structureLines.join("\n"));
+    lines.push("");
+  }
+
+  // 出力モード別ルール
+  var modeRule = OUTPUT_MODE_RULES[state.outputMode];
+  if(modeRule){
+    lines.push("【出力モードの指示】");
+    lines.push(modeRule);
+    lines.push("");
+  }
+
+  lines.push("不足情報は仮置きで進め、最後に【仮置き一覧】を出してください。");
+  lines.push("NGチェック結果も○×で出してください。");
+
+  return {
+    prompt: lines.join("\n"),
+    warnings: otherWarnings
+  };
+}
+
+/* ==========================================================
+   履歴の生成・保存
+   ========================================================== */
+function generateId(){
+  return "h_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+}
+
+function createRecordFromState(promptText){
+  var now = new Date().toISOString();
+  var isEditing = !!state.editingId;
+  var history = loadHistory();
+  var existing = isEditing ? history.find(function(r){ return r.id === state.editingId; }) : null;
+
+  var record = {
+    id: existing ? existing.id : generateId(),
+    createdAt: existing ? existing.createdAt : now,
+    updatedAt: now,
+    business: state.business,
+    businessOther: state.businessOther,
+    outputType: state.outputType,
+    outputTypeOther: state.outputTypeOther,
+    purpose: state.purpose,
+    purposeOther: state.purposeOther,
+    target: state.target,
+    theme: state.theme,
+    outputMode: state.outputMode,
+    extraConditions: state.extraConditions.slice(),
+    extraConditionOther: state.extraConditionOther,
+    freeNote: state.freeNote,
+    generatedPrompt: promptText,
+    isFavorite: existing ? !!existing.isFavorite : false,
+    memo: existing ? (existing.memo || "") : ""
+  };
+  return record;
+}
+
+function saveRecordToHistory(record){
+  var history = loadHistory();
+  var idx = history.findIndex(function(r){ return r.id === record.id; });
+  if(idx >= 0){
+    history[idx] = record;
+  }else{
+    history.unshift(record);
+  }
+  // 上限整理：お気に入り以外の古いものから削除
+  if(history.length > HISTORY_LIMIT){
+    var favorites = history.filter(function(r){ return r.isFavorite; });
+    var normal = history.filter(function(r){ return !r.isFavorite; });
+    var allowedNormal = Math.max(0, HISTORY_LIMIT - favorites.length);
+    normal = normal.slice(0, allowedNormal);
+    // createdAt順（新しい順）を保つため再結合してソート
+    history = favorites.concat(normal);
+    history.sort(function(a, b){
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+  }
+  var ok = saveHistory(history);
+  return ok;
+}
+
+/* ==========================================================
+   画面切り替え
+   ========================================================== */
+function showScreen(id){
+  Array.prototype.forEach.call(document.querySelectorAll(".screen"), function(s){
+    s.classList.remove("active");
+  });
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+/* ==========================================================
+   完成プロンプト生成ボタン
+   ========================================================== */
+var lastGeneratedRecordId = null;
+
+document.getElementById("btn-generate").addEventListener("click", function(){
+  syncFreeInputs();
+  var result = buildPrompt();
+  var record = createRecordFromState(result.prompt);
+  var saved = saveRecordToHistory(record);
+  lastGeneratedRecordId = record.id;
+  state.editingId = record.id;
+
+  var msgContainer = document.getElementById("result-messages");
+  msgContainer.innerHTML = "";
+  result.warnings.forEach(function(w){
+    var div = document.createElement("div");
+    div.className = "msg warn";
+    div.textContent = w.text;
+    msgContainer.appendChild(div);
+  });
+  if(!saved){
+    var errDiv = document.createElement("div");
+    errDiv.className = "msg error";
+    errDiv.textContent = "端末の保存容量またはブラウザ設定により保存できませんでした。完成プロンプトはコピーして保管してください";
+    msgContainer.appendChild(errDiv);
+  }else{
+    var infoDiv = document.createElement("div");
+    infoDiv.className = "msg info";
+    infoDiv.textContent = "履歴に保存しました";
+    msgContainer.appendChild(infoDiv);
+  }
+
+  document.getElementById("result-prompt").textContent = result.prompt;
+  updateFavoriteButtonLabel();
+  showScreen("screen-result");
+});
+
+function updateFavoriteButtonLabel(){
+  var history = loadHistory();
+  var rec = history.find(function(r){ return r.id === lastGeneratedRecordId; });
+  var btn = document.getElementById("btn-favorite");
+  btn.textContent = (rec && rec.isFavorite) ? "お気に入り解除" : "お気に入りに保存";
+}
+
+document.getElementById("btn-favorite").addEventListener("click", function(){
+  toggleFavorite(lastGeneratedRecordId);
+  updateFavoriteButtonLabel();
+});
+
+document.getElementById("btn-copy").addEventListener("click", function(){
+  copyText(document.getElementById("result-prompt").textContent, "result-messages");
+});
+
+document.getElementById("btn-reedit").addEventListener("click", function(){
+  var history = loadHistory();
+  var rec = history.find(function(r){ return r.id === lastGeneratedRecordId; });
+  if(rec){
+    fillHomeFormFromRecord(rec);
+  }
+  showScreen("screen-home");
+});
+
+document.getElementById("btn-back-home").addEventListener("click", function(){
+  resetHomeForm();
+  showScreen("screen-home");
+});
+
+/* ==========================================================
+   コピー処理
+   ========================================================== */
+function copyText(text, msgContainerId){
+  var container = document.getElementById(msgContainerId);
+  function showResult(ok){
+    var div = document.createElement("div");
+    div.className = "msg " + (ok ? "info" : "error");
+    div.textContent = ok ? "コピーしました" : "コピーできませんでした。本文を長押しして選択してください";
+    container.appendChild(div);
+    setTimeout(function(){ if(div.parentNode) div.parentNode.removeChild(div); }, 3000);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      showResult(true);
+    }).catch(function(){
+      showResult(false);
+    });
+  }else{
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      showResult(ok);
+    }catch(e){
+      showResult(false);
+    }
+  }
+}
+
+/* ==========================================================
+   お気に入り切替
+   ========================================================== */
+function toggleFavorite(id){
+  var history = loadHistory();
+  var idx = history.findIndex(function(r){ return r.id === id; });
+  if(idx < 0) return;
+  history[idx].isFavorite = !history[idx].isFavorite;
+  history[idx].updatedAt = new Date().toISOString();
+  saveHistory(history);
+}
+
+/* ==========================================================
+   履歴一覧画面
+   ========================================================== */
+var showFavoritesOnly = false;
+
+document.getElementById("btn-goto-history").addEventListener("click", function(){
+  showFavoritesOnly = false;
+  document.getElementById("filter-favorite-only").checked = false;
+  document.getElementById("history-title").textContent = "履歴一覧";
+  renderHistoryList();
+  showScreen("screen-history");
+});
+
+document.getElementById("btn-goto-favorites").addEventListener("click", function(){
+  showFavoritesOnly = true;
+  document.getElementById("filter-favorite-only").checked = true;
+  document.getElementById("history-title").textContent = "お気に入り一覧";
+  renderHistoryList();
+  showScreen("screen-history");
+});
+
+document.getElementById("filter-favorite-only").addEventListener("change", function(e){
+  showFavoritesOnly = e.target.checked;
+  document.getElementById("history-title").textContent = showFavoritesOnly ? "お気に入り一覧" : "履歴一覧";
+  renderHistoryList();
+});
+
+document.getElementById("btn-history-back").addEventListener("click", function(){
+  showScreen("screen-home");
+});
+
+function formatDate(iso){
+  try{
+    var d = new Date(iso);
+    var pad = function(n){ return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "/" + pad(d.getMonth()+1) + "/" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }catch(e){
+    return iso;
+  }
+}
+
+function renderHistoryList(){
+  var list = loadHistory();
+  list.sort(function(a, b){ return new Date(b.createdAt) - new Date(a.createdAt); });
+  if(showFavoritesOnly){
+    list = list.filter(function(r){ return r.isFavorite; });
+  }
+  var container = document.getElementById("history-list");
+  container.innerHTML = "";
+
+  if(list.length === 0){
+    var empty = document.createElement("div");
+    empty.className = "empty-msg";
+    empty.textContent = showFavoritesOnly ? "お気に入り登録されたプロンプトはまだありません" : "まだ履歴はありません";
+    container.appendChild(empty);
+    return;
+  }
+
+  list.forEach(function(rec){
+    var item = document.createElement("div");
+    item.className = "history-item";
+
+    var star = document.createElement("span");
+    star.className = "fav-star";
+    star.textContent = rec.isFavorite ? "★" : "☆";
+    star.addEventListener("click", function(ev){
+      ev.stopPropagation();
+      toggleFavorite(rec.id);
+      renderHistoryList();
+    });
+
+    var title = document.createElement("div");
+    title.className = "title";
+    title.appendChild(star);
+    var typeLabel = rec.outputType === "その他" ? (rec.outputTypeOther || "その他") : rec.outputType;
+    title.appendChild(document.createTextNode(businessDisplayLabel(rec) + " ／ " + (typeLabel || "未選択")));
+
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = formatDate(rec.createdAt) + "　テーマ：" + (rec.theme || "（未入力）") + "　出力：" + (rec.outputMode || "-");
+
+    item.appendChild(title);
+    item.appendChild(meta);
+
+    var btnRow = document.createElement("div");
+    btnRow.className = "btn-row";
+
+    var detailBtn = document.createElement("button");
+    detailBtn.className = "btn-secondary";
+    detailBtn.textContent = "詳細を見る";
+    detailBtn.addEventListener("click", function(){
+      openDetail(rec.id);
+    });
+
+    var delBtn = document.createElement("button");
+    delBtn.className = "btn-secondary";
+    delBtn.style.color = "#c0392b";
+    delBtn.style.borderColor = "#c0392b";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", function(){
+      deleteRecord(rec.id, function(){ renderHistoryList(); });
+    });
+
+    btnRow.appendChild(detailBtn);
+    btnRow.appendChild(delBtn);
+    item.appendChild(btnRow);
+
+    container.appendChild(item);
+  });
+}
+
+function businessDisplayLabel(rec){
+  if(rec.business === "その他"){
+    return rec.businessOther && rec.businessOther.trim() ? rec.businessOther.trim() : "その他";
+  }
+  return rec.business || "未選択";
+}
+
+function deleteRecord(id, cb){
+  var history = loadHistory();
+  var rec = history.find(function(r){ return r.id === id; });
+  if(!rec) return;
+  var confirmMsg = "この履歴を削除しますか？";
+  if(rec.isFavorite){
+    confirmMsg += "\nお気に入りにも影響します。";
+  }
+  if(window.confirm(confirmMsg)){
+    history = history.filter(function(r){ return r.id !== id; });
+    saveHistory(history);
+    if(cb) cb();
+  }
+}
+
+/* ==========================================================
+   詳細・再編集画面
+   ========================================================== */
+function openDetail(id){
+  currentDetailId = id;
+  var history = loadHistory();
+  var rec = history.find(function(r){ return r.id === id; });
+  if(!rec) return;
+
+  var fieldsContainer = document.getElementById("detail-fields");
+  fieldsContainer.innerHTML = "";
+
+  var fieldDefs = [
+    ["作成日時", formatDate(rec.createdAt)],
+    ["更新日時", formatDate(rec.updatedAt)],
+    ["事業", businessDisplayLabel(rec)],
+    ["作りたいもの", rec.outputType === "その他" ? (rec.outputTypeOther || "その他") : rec.outputType],
+    ["目的", rec.purpose === "その他" ? (rec.purposeOther || "その他") : rec.purpose],
+    ["ターゲット", rec.target || "（未入力）"],
+    ["テーマ", rec.theme || "（未入力）"],
+    ["出力モード", rec.outputMode || "-"],
+    ["追加条件", (rec.extraConditions || []).join("／") || "特になし"],
+    ["その他自由記述", rec.freeNote || "特になし"]
+  ];
+
+  fieldDefs.forEach(function(pair){
+    var f = document.createElement("div");
+    f.className = "detail-field";
+    var label = document.createElement("div");
+    label.className = "label";
+    label.textContent = pair[0];
+    var value = document.createElement("div");
+    value.className = "value";
+    value.textContent = pair[1];
+    f.appendChild(label);
+    f.appendChild(value);
+    fieldsContainer.appendChild(f);
+  });
+
+  document.getElementById("detail-prompt").textContent = rec.generatedPrompt;
+  document.getElementById("btn-detail-favorite").textContent = rec.isFavorite ? "お気に入り解除" : "お気に入りに登録";
+
+  showScreen("screen-detail");
+}
+
+document.getElementById("btn-detail-copy").addEventListener("click", function(){
+  var history = loadHistory();
+  var rec = history.find(function(r){ return r.id === currentDetailId; });
+  if(rec){
+    copyText(rec.generatedPrompt, "detail-fields");
+  }
+});
+
+document.getElementById("btn-detail-favorite").addEventListener("click", function(){
+  toggleFavorite(currentDetailId);
+  var history = loadHistory();
+  var rec = history.find(function(r){ return r.id === currentDetailId; });
+  document.getElementById("btn-detail-favorite").textContent = (rec && rec.isFavorite) ? "お気に入り解除" : "お気に入りに登録";
+});
+
+document.getElementById("btn-detail-reedit").addEventListener("click", function(){
+  var history = loadHistory();
+  var rec = history.find(function(r){ return r.id === currentDetailId; });
+  if(rec){
+    fillHomeFormFromRecord(rec);
+  }
+  showScreen("screen-home");
+});
+
+document.getElementById("btn-detail-delete").addEventListener("click", function(){
+  deleteRecord(currentDetailId, function(){
+    showScreen("screen-history");
+    renderHistoryList();
+  });
+});
+
+document.getElementById("btn-detail-back").addEventListener("click", function(){
+  renderHistoryList();
+  showScreen("screen-history");
+});
+
+/* ==========================================================
+   初期化
+   ========================================================== */
+function init(){
+  initHomeScreen();
+  // 設定キーは将来拡張用。現時点では読み込むだけ。
+  loadSettings();
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>
