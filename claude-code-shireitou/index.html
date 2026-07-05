@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Claude Code司令塔</title>
+<style>
+  :root{
+    --accent:#f18200;
+    --accent-dark:#d16f00;
+    --bg:#f7f7f5;
+    --card:#ffffff;
+    --text:#2b2b2b;
+    --text-sub:#6b6b6b;
+    --border:#e5e2dd;
+    --warn-bg:#fff3e2;
+    --warn-border:#ffd9a8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif;
+    line-height:1.6;
+    padding-bottom:60px;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:16px;}
+  header.top{
+    padding:20px 16px 8px;
+    text-align:center;
+  }
+  header.top h1{
+    margin:0 0 6px;
+    font-size:22px;
+    color:var(--accent-dark);
+  }
+  header.top p{
+    margin:4px 0;
+    color:var(--text-sub);
+    font-size:13px;
+  }
+  .notice{
+    background:var(--warn-bg);
+    border:1px solid var(--warn-border);
+    border-radius:12px;
+    padding:10px 14px;
+    font-size:12.5px;
+    color:#8a5a10;
+    margin:10px 0;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:16px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.04);
+  }
+  .card h2{
+    font-size:15px;
+    margin:0 0 12px;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .card h2 .num{
+    background:var(--accent);
+    color:#fff;
+    width:20px;height:20px;
+    border-radius:50%;
+    font-size:11px;
+    display:inline-flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  label.field-label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--text-sub);
+    margin:10px 0 6px;
+  }
+  input[type="text"], textarea{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:15px;
+    font-family:inherit;
+    background:#fff;
+    color:var(--text);
+  }
+  textarea{resize:vertical;min-height:70px;}
+  input[type="text"]:focus, textarea:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+  .card-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+    margin-top:4px;
+  }
+  .choice-card{
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    padding:10px 8px;
+    text-align:center;
+    font-size:13px;
+    cursor:pointer;
+    background:#fff;
+    user-select:none;
+    transition:all .15s;
+  }
+  .choice-card.selected{
+    border-color:var(--accent);
+    background:#fff3e6;
+    color:var(--accent-dark);
+    font-weight:600;
+  }
+  .choice-card:active{transform:scale(0.97);}
+  .checkbox-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:4px;
+  }
+  .checkbox-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    cursor:pointer;
+    background:#fff;
+  }
+  .checkbox-item.checked{
+    border-color:var(--accent);
+    background:#fff3e6;
+  }
+  .checkbox-item input{
+    width:18px;height:18px;
+    accent-color:var(--accent);
+    flex-shrink:0;
+  }
+  .checkbox-item span{font-size:14px;}
+  .upload-area{
+    border:2px dashed var(--accent);
+    border-radius:14px;
+    padding:18px 14px;
+    text-align:center;
+    background:#fffaf3;
+    cursor:pointer;
+  }
+  .upload-area p{margin:4px 0;font-size:13px;color:var(--text-sub);}
+  .upload-area .big{font-size:15px;color:var(--accent-dark);font-weight:600;}
+  .file-info{
+    margin-top:10px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    background:#fff;
+    font-size:13.5px;
+  }
+  .file-info div{margin:3px 0;}
+  .error-box{
+    background:#fdeaea;
+    border:1px solid #f3b7b7;
+    color:#a13a3a;
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:13px;
+    margin-top:8px;
+  }
+  .btn{
+    display:block;
+    width:100%;
+    border:none;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .btn-main{
+    background:var(--accent);
+    color:#fff;
+  }
+  .btn-main:active{background:var(--accent-dark);}
+  .btn-sub{
+    background:#fff;
+    color:var(--accent-dark);
+    border:1.5px solid var(--accent);
+  }
+  .btn-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .btn-small{
+    font-size:13px;
+    padding:9px 10px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--text);
+    cursor:pointer;
+  }
+  #result-box{
+    white-space:pre-wrap;
+    word-break:break-word;
+    font-family:"SFMono-Regular",Consolas,Menlo,monospace;
+    font-size:13px;
+    background:#fbfbfa;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px;
+    min-height:120px;
+    max-height:420px;
+    overflow-y:auto;
+  }
+  .copied-toast{
+    position:fixed;
+    top:14px;left:50%;
+    transform:translateX(-50%);
+    background:var(--accent-dark);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:30px;
+    font-size:13px;
+    z-index:999;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    display:none;
+  }
+  .history-item{
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    background:#fff;
+  }
+  .history-item .meta{
+    font-size:11.5px;
+    color:var(--text-sub);
+    margin-bottom:4px;
+  }
+  .history-item .snippet{
+    font-size:13px;
+    color:var(--text);
+    margin-bottom:8px;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .history-item .actions{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .fav-star{
+    background:none;
+    border:none;
+    font-size:18px;
+    cursor:pointer;
+    line-height:1;
+  }
+  .empty-msg{
+    color:var(--text-sub);
+    font-size:13px;
+    text-align:center;
+    padding:10px 0;
+  }
+  .tab-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .tab-btn{
+    flex:1;
+    padding:8px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:#fff;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+    font-weight:700;
+  }
+</style>
+</head>
+<body>
+
+<div class="copied-toast" id="toast">コピーしました</div>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Claude Code司令塔</h1>
+    <p>開発指示・修正指示・バグ修正依頼を、Claude Codeに伝わる形へ。</p>
+    <p>選択式と自由記述だけで、Claude Codeにそのまま貼れる完成指示を作ります。</p>
+  </header>
+
+  <div class="notice">コードを書く前に、作業内容・対象ファイル・守る条件を整理します。</div>
+
+  <!-- 作業タイプ -->
+  <div class="card">
+    <h2><span class="num">1</span>作業タイプ</h2>
+    <div class="card-grid" id="workTypeGrid"></div>
+  </div>
+
+  <!-- 対象情報 -->
+  <div class="card">
+    <h2><span class="num">2</span>対象アプリ・直したいファイル</h2>
+    <label class="field-label">対象アプリ名</label>
+    <input type="text" id="appName" placeholder="例：Claude Code司令塔">
+
+    <label class="field-label">直したいファイル・フォルダ</label>
+    <input type="text" id="targetPath" placeholder="例：app/index.html">
+
+    <label class="field-label">やりたいこと</label>
+    <textarea id="requestText" placeholder="Claude Codeに頼みたい内容を書いてください"></textarea>
+  </div>
+
+  <!-- ファイルアップロード -->
+  <div class="card">
+    <h2><span class="num">3</span>対象ファイルを確認する場所</h2>
+    <div class="upload-area" id="uploadArea">
+      <p class="big">タップしてファイルを選択</p>
+      <p>対応形式：html / css / js / php / md / txt / json</p>
+    </div>
+    <input type="file" id="fileInput" style="display:none" accept=".html,.css,.js,.php,.md,.txt,.json">
+    <div id="fileErrorBox"></div>
+    <div id="fileInfoBox"></div>
+    <div class="notice" style="margin-top:10px;">ファイルが大きい場合は、全文を入れず「添付ファイルを参照してください」として出力します。</div>
+  </div>
+
+  <!-- 条件 -->
+  <div class="card">
+    <h2><span class="num">4</span>作るときの条件（技術条件）</h2>
+    <div class="card-grid" id="techGrid"></div>
+    <div id="techOtherWrap" style="display:none;">
+      <label class="field-label">その他の技術条件</label>
+      <input type="text" id="techOtherText" placeholder="自由に入力してください">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">5</span>壊さないための約束（守る条件）</h2>
+    <div class="checkbox-list" id="mustKeepList"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">6</span>Claude Codeに何として渡すか（出力タイプ）</h2>
+    <div class="card-grid" id="outputTypeGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">7</span>その他自由記述</h2>
+    <textarea id="otherMemo" placeholder="細かい事情、起きているエラー、触ってほしくない場所、参考URLなど"></textarea>
+  </div>
+
+  <!-- 操作ボタン -->
+  <div class="card">
+    <button class="btn btn-main" id="genBtn">完成指示を作る</button>
+    <div class="btn-row">
+      <button class="btn btn-sub" id="copyBtn">コピーする</button>
+      <button class="btn btn-sub" id="historyBtn">履歴に残す</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-sub" id="favBtn">お気に入りに入れる</button>
+      <button class="btn btn-sub" id="clearBtn">入力だけクリア</button>
+    </div>
+  </div>
+
+  <!-- 生成結果 -->
+  <div class="card">
+    <h2><span class="num">8</span>完成指示（Claude Codeに貼る内容）</h2>
+    <div id="result-box">まだ生成されていません。上の項目を入力して「完成指示を作る」を押してください。</div>
+  </div>
+
+  <!-- 履歴・お気に入り -->
+  <div class="card">
+    <h2><span class="num">9</span>履歴・お気に入り</h2>
+    <div class="tab-row">
+      <button class="tab-btn active" id="tabHistory">履歴</button>
+      <button class="tab-btn" id="tabFav">お気に入り</button>
+    </div>
+    <div id="listArea"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- 定数 ----------
+  var HISTORY_KEY = "cc_shireitou_history_v1";
+  var DRAFT_KEY = "cc_shireitou_draft_v1";
+
+  var WORK_TYPES = ["新規アプリ作成","既存アプリ修正","バグ修正","UI改善","機能追加","サーバー設置","既存コード整理","引き継ぎ資料作成","その他"];
+
+  var TECH_OPTIONS = ["単一HTML","さくらサーバー","PHP 7.4互換","localStorage使用","Googleスプレッドシート連携","Googleカレンダー連携","外部ライブラリなし","既存ファイルを触る","新規フォルダで作る","スマホ優先","その他"];
+  var TECH_DEFAULT = ["単一HTML","localStorage使用","外部ライブラリなし","スマホ優先"];
+
+  var MUSTKEEP_OPTIONS = ["既存データを消さない","localStorageキーを変更しない","既存UIを壊さない","既存URLを変えない","既存ファイル構成を変えない","まず現状確認してから修正","コードを書く前に方針を説明","修正後に確認方法を出す","変更ファイルを一覧で出す"];
+  var MUSTKEEP_DEFAULT = ["既存データを消さない","localStorageキーを変更しない","まず現状確認してから修正","修正後に確認方法を出す","変更ファイルを一覧で出す"];
+
+  var OUTPUT_TYPES = ["Claude Codeに貼る開発指示","バグ修正依頼","機能追加依頼","UI改善依頼","サーバーアップロード手順","検証チェックリスト","引き継ぎ資料"];
+
+  var ALLOWED_EXT = ["html","css","js","php","md","txt","json"];
+  var MAX_CONTENT_SIZE = 100 * 1024; // 100KB
+
+  var FIXED_LINE = "添付した対象ファイルを前提に修正してください。既存機能・既存データ・既存localStorageキーを壊さず、必要な箇所だけ変更してください。変更後は、変更ファイル・変更内容・確認方法を報告してください。";
+
+  // ---------- 状態 ----------
+  var state = {
+    workType: "",
+    appName: "",
+    targetPath: "",
+    requestText: "",
+    techConditions: TECH_DEFAULT.slice(),
+    techOtherText: "",
+    mustKeepConditions: MUSTKEEP_DEFAULT.slice(),
+    outputType: "",
+    otherMemo: "",
+    uploadedFile: null // 単一ファイル。将来は配列化
+  };
+
+  var currentListTab = "history"; // history | favorite
+
+  // ---------- ユーティリティ ----------
+  function $(id){ return document.getElementById(id); }
+
+  function formatSize(bytes){
+    if(bytes < 1024) return bytes + "B";
+    if(bytes < 1024*1024) return Math.round(bytes/1024) + "KB";
+    return (bytes/1024/1024).toFixed(1) + "MB";
+  }
+
+  function getExt(fileName){
+    var parts = fileName.split(".");
+    if(parts.length < 2) return "";
+    return parts[parts.length-1].toLowerCase();
+  }
+
+  function nowLabel(d){
+    d = d || new Date();
+    function pad(n){ return (n<10?"0":"")+n; }
+    return d.getFullYear()+"/"+pad(d.getMonth()+1)+"/"+pad(d.getDate())+" "+pad(d.getHours())+":"+pad(d.getMinutes());
+  }
+
+  function safeLoadJSON(key, fallback){
+    try{
+      var raw = localStorage.getItem(key);
+      if(!raw) return fallback;
+      var parsed = JSON.parse(raw);
+      if(!Array.isArray(parsed) && Array.isArray(fallback)) return fallback;
+      return parsed;
+    }catch(e){
+      return fallback;
+    }
+  }
+
+  function safeSaveJSON(key, value){
+    try{
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    }catch(e){
+      alert("履歴保存ができませんでした。ブラウザの保存容量を確認してください");
+      return false;
+    }
+  }
+
+  function showToast(msg){
+    var t = $("toast");
+    t.textContent = msg || "コピーしました";
+    t.style.display = "block";
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(function(){ t.style.display = "none"; }, 1800);
+  }
+
+  // ---------- カード描画 ----------
+  function renderSingleSelectGrid(containerId, options, selectedGetter, onSelect){
+    var container = $(containerId);
+    container.innerHTML = "";
+    options.forEach(function(opt){
+      var div = document.createElement("div");
+      div.className = "choice-card" + (selectedGetter() === opt ? " selected" : "");
+      div.textContent = opt;
+      div.addEventListener("click", function(){
+        onSelect(opt);
+        renderSingleSelectGrid(containerId, options, selectedGetter, onSelect);
+      });
+      container.appendChild(div);
+    });
+  }
+
+  function renderMultiSelectGrid(containerId, options, selectedArrRef){
+    var container = $(containerId);
+    container.innerHTML = "";
+    options.forEach(function(opt){
+      var div = document.createElement("div");
+      var isSelected = selectedArrRef.indexOf(opt) !== -1;
+      div.className = "choice-card" + (isSelected ? " selected" : "");
+      div.textContent = opt;
+      div.addEventListener("click", function(){
+        var idx = selectedArrRef.indexOf(opt);
+        if(idx === -1){ selectedArrRef.push(opt); } else { selectedArrRef.splice(idx,1); }
+        renderMultiSelectGrid(containerId, options, selectedArrRef);
+        if(containerId === "techGrid"){
+          $("techOtherWrap").style.display = selectedArrRef.indexOf("その他") !== -1 ? "block" : "none";
+        }
+      });
+      container.appendChild(div);
+    });
+  }
+
+  function renderCheckboxList(containerId, options, selectedArrRef){
+    var container = $(containerId);
+    container.innerHTML = "";
+    options.forEach(function(opt){
+      var item = document.createElement("label");
+      var isChecked = selectedArrRef.indexOf(opt) !== -1;
+      item.className = "checkbox-item" + (isChecked ? " checked" : "");
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = isChecked;
+      input.addEventListener("change", function(){
+        var idx = selectedArrRef.indexOf(opt);
+        if(input.checked && idx === -1){ selectedArrRef.push(opt); }
+        if(!input.checked && idx !== -1){ selectedArrRef.splice(idx,1); }
+        renderCheckboxList(containerId, options, selectedArrRef);
+      });
+      var span = document.createElement("span");
+      span.textContent = opt;
+      item.appendChild(input);
+      item.appendChild(span);
+      container.appendChild(item);
+    });
+  }
+
+  function initCards(){
+    renderSingleSelectGrid("workTypeGrid", WORK_TYPES, function(){ return state.workType; }, function(v){ state.workType = v; });
+    renderMultiSelectGrid("techGrid", TECH_OPTIONS, state.techConditions);
+    renderCheckboxList("mustKeepList", MUSTKEEP_OPTIONS, state.mustKeepConditions);
+    renderSingleSelectGrid("outputTypeGrid", OUTPUT_TYPES, function(){ return state.outputType; }, function(v){ state.outputType = v; });
+  }
+
+  // ---------- ファイルアップロード ----------
+  $("uploadArea").addEventListener("click", function(){ $("fileInput").click(); });
+
+  $("fileInput").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    $("fileErrorBox").innerHTML = "";
+    if(!file) return;
+
+    var ext = getExt(file.name);
+    if(ALLOWED_EXT.indexOf(ext) === -1){
+      $("fileErrorBox").innerHTML = '<div class="error-box">この形式はVer.1では対象外です。html / css / js / php / md / txt / json のファイルを使ってください。</div>';
+      $("fileInfoBox").innerHTML = "";
+      state.uploadedFile = null;
+      $("fileInput").value = "";
+      return;
+    }
+
+    var tooLarge = file.size > MAX_CONTENT_SIZE;
+
+    var reader = new FileReader();
+    reader.onload = function(evt){
+      state.uploadedFile = {
+        fileName: file.name,
+        fileSize: file.size,
+        fileSizeLabel: formatSize(file.size),
+        extension: ext,
+        includeContent: !tooLarge, // チェックボックス初期状態
+        content: tooLarge ? "" : evt.target.result,
+        contentTooLarge: tooLarge,
+        uploadedAt: new Date().toISOString()
+      };
+      renderFileInfo();
+    };
+    if(tooLarge){
+      state.uploadedFile = {
+        fileName: file.name,
+        fileSize: file.size,
+        fileSizeLabel: formatSize(file.size),
+        extension: ext,
+        includeContent: false,
+        content: "",
+        contentTooLarge: true,
+        uploadedAt: new Date().toISOString()
+      };
+      renderFileInfo();
+    } else {
+      reader.readAsText(file);
+    }
+  });
+
+  function renderFileInfo(){
+    var f = state.uploadedFile;
+    var box = $("fileInfoBox");
+    if(!f){ box.innerHTML = ""; return; }
+    var html = "";
+    html += '<div class="file-info">';
+    html += '<div>対象ファイル：'+escapeHtml(f.fileName)+'</div>';
+    html += '<div>サイズ：'+f.fileSizeLabel+'</div>';
+    html += '<div>拡張子：'+f.extension+'</div>';
+    if(f.contentTooLarge){
+      html += '<div style="color:#a15a10;">ファイルが大きいため、完成指示には全文を入れず「添付ファイルを参照してください」として扱います</div>';
+    } else {
+      html += '<label class="checkbox-item'+(f.includeContent ? " checked": "")+'" style="margin-top:8px;">'
+            + '<input type="checkbox" id="includeContentChk" '+(f.includeContent ? "checked" : "")+'>'
+            + '<span>ファイル内容も完成指示に含める</span></label>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+
+    var chk = $("includeContentChk");
+    if(chk){
+      chk.addEventListener("change", function(){
+        state.uploadedFile.includeContent = chk.checked;
+        renderFileInfo();
+      });
+    }
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
+  // ---------- 完成指示生成 ----------
+  function getWorkTypeExtraLine(workType){
+    var map = {
+      "新規アプリ作成":"コードを書く前に、画面構成・保存項目・操作の流れを整理してから進めてください。",
+      "既存アプリ修正":"既存の動きと見た目を確認してから、必要な箇所だけ修正してください。",
+      "バグ修正":"まず原因の候補を整理し、修正方針を説明してから作業してください。",
+      "UI改善":"スマホで見たときの押しやすさ、読みやすさ、入力しやすさを優先してください。",
+      "機能追加":"既存機能に影響が出ないよう、追加部分を分けて実装してください。",
+      "サーバー設置":"さくらサーバーに置く前提で、アップロードするファイル、設置場所、確認方法を分けて説明してください。",
+      "既存コード整理":"見た目と動作を変えず、読みやすく整理してください。",
+      "引き継ぎ資料作成":"次に触る人が迷わないよう、目的、構成、変更禁止箇所、確認方法をまとめてください。"
+    };
+    return map[workType] || "";
+  }
+
+  function buildFileSectionLines(){
+    var f = state.uploadedFile;
+    if(!f) return ["（対象ファイルのアップロードなし）"];
+    var lines = [f.fileName];
+    if(f.contentTooLarge){
+      lines.push("ファイルサイズが大きいため、本文は完成指示に含めていません。添付ファイルを参照してください。");
+    } else if(f.includeContent){
+      lines.push("以下のファイル内容を前提に修正してください。");
+      lines.push("```" + f.extension);
+      lines.push(f.content);
+      lines.push("```");
+    } else {
+      lines.push("添付ファイルを参照してください。");
+    }
+    return lines;
+  }
+
+  function analyzeOtherMemo(memo){
+    var result = { urlNote:"", errorNote:"", noTouchNote:"" };
+    if(!memo) return result;
+    var urlMatch = memo.match(/https?:\/\/[^\s]+/);
+    if(urlMatch) result.urlNote = urlMatch[0];
+    if(memo.indexOf("エラー") !== -1) result.errorNote = memo;
+    if(memo.indexOf("触らないで") !== -1 || memo.indexOf("触らない") !== -1) result.noTouchNote = memo;
+    return result;
+  }
+
+  function joinOrDash(arr){
+    return arr && arr.length ? arr.map(function(v){return "- "+v;}).join("\n") : "- （選択なし）";
+  }
+
+  function buildPrompt(){
+    var s = state;
+    var techList = s.techConditions.slice();
+    var techOtherLine = (techList.indexOf("その他") !== -1 && s.techOtherText) ? ("- その他："+s.techOtherText) : "";
+    var memoInfo = analyzeOtherMemo(s.otherMemo);
+    var fileLines = buildFileSectionLines();
+    var extraLine = getWorkTypeExtraLine(s.workType);
+
+    var header, body;
+
+    if(s.outputType === "バグ修正依頼"){
+      header = "# Claude Codeへのバグ修正依頼";
+      body = ""
+        + "## 対象アプリ\n" + (s.appName || "（未入力）") + "\n\n"
+        + "## 対象ファイル・フォルダ\n" + (s.targetPath || "（未入力）") + "\n\n"
+        + "## 対象ファイル\n" + fileLines.join("\n") + "\n\n"
+        + "## 起きていること\n" + (s.requestText || "（未入力）") + (memoInfo.errorNote ? "\n\n【エラー内容メモ】\n"+memoInfo.errorNote : "") + "\n\n"
+        + "## 技術条件\n" + joinOrDash(techList) + (techOtherLine ? "\n"+techOtherLine : "") + "\n\n"
+        + "## 守る条件\n" + joinOrDash(s.mustKeepConditions) + "\n\n"
+        + "## 依頼内容\n" + "まず原因の候補を整理し、修正方針を説明してから作業してください。\n" + FIXED_LINE + "\n\n"
+        + "## 作業後に報告してほしいこと\n" + "変更後は、変更ファイル・変更内容・確認方法を報告してください。";
+    } else if(s.outputType === "機能追加依頼"){
+      header = "# Claude Codeへの機能追加依頼";
+      body = ""
+        + "## 対象アプリ\n" + (s.appName || "（未入力）") + "\n\n"
+        + "## 対象ファイル・フォルダ\n" + (s.targetPath || "（未入力）") + "\n\n"
+        + "## 対象ファイル\n" + fileLines.join("\n") + "\n\n"
+        + "## 追加したい機能\n" + (s.requestText || "（未入力）") + "\n\n"
+        + "## 技術条件\n" + joinOrDash(techList) + (techOtherLine ? "\n"+techOtherLine : "") + "\n\n"
+        + "## 守る条件\n" + joinOrDash(s.mustKeepConditions) + "\n\n"
+        + "## 依頼内容\n" + "既存機能に影響が出ないよう、追加部分を分けて実装してください。\n" + FIXED_LINE + "\n\n"
+        + "## 作業後に報告してほしいこと\n" + "変更後は、変更ファイル・変更内容・確認方法を報告してください。";
+    } else if(s.outputType === "UI改善依頼"){
+      header = "# Claude CodeへのUI改善依頼";
+      body = ""
+        + "## 対象アプリ\n" + (s.appName || "（未入力）") + "\n\n"
+        + "## 対象ファイル・フォルダ\n" + (s.targetPath || "（未入力）") + "\n\n"
+        + "## 対象ファイル\n" + fileLines.join("\n") + "\n\n"
+        + "## 改善したいこと\n" + (s.requestText || "（未入力）") + "\n\n"
+        + "## 技術条件\n" + joinOrDash(techList) + (techOtherLine ? "\n"+techOtherLine : "") + "\n\n"
+        + "## 守る条件\n" + joinOrDash(s.mustKeepConditions) + "\n\n"
+        + "## 依頼内容\n" + "スマホで見たときの押しやすさ、読みやすさ、入力しやすさを優先してください。\n" + FIXED_LINE + "\n\n"
+        + "## 作業後に報告してほしいこと\n" + "変更後は、変更ファイル・変更内容・確認方法を報告してください。";
+    } else if(s.outputType === "サーバーアップロード手順"){
+      header = "# Claude Codeへのサーバーアップロード手順依頼";
+      body = ""
+        + "## 対象アプリ\n" + (s.appName || "（未入力）") + "\n\n"
+        + "## 設置先\n" + "さくらサーバー\n\n"
+        + "## アップロード対象\n" + (s.targetPath || "（未入力）") + "\n\n"
+        + "## 対象ファイル\n" + fileLines.join("\n") + "\n\n"
+        + "## 変更するファイル\n" + (s.requestText || "（未入力）") + "\n\n"
+        + "## 技術条件\n" + joinOrDash(techList) + (techOtherLine ? "\n"+techOtherLine : "") + "\n\n"
+        + "## 守る条件\n" + joinOrDash(s.mustKeepConditions) + "\n\n"
+        + "## さくらサーバーでの注意点\n" + "アップロードするファイル、設置場所、確認方法を分けて説明してください。\n" + FIXED_LINE + "\n\n"
+        + "## 確認方法\n" + "変更後は、変更ファイル・変更内容・確認方法を報告してください。";
+    } else if(s.outputType === "検証チェックリスト"){
+      header = "# Claude Codeへの検証チェックリスト依頼";
+      body = ""
+        + "## 対象アプリ\n" + (s.appName || "（未入力）") + "\n\n"
+        + "## 対象ファイル・フォルダ\n" + (s.targetPath || "（未入力）") + "\n\n"
+        + "## 対象ファイル\n" + fileLines.join("\n") + "\n\n"
+        + "## 確認したいこと\n" + (s.requestText || "（未入力）") + "\n\n"
+        + "## チェック観点\n"
+        + "- 画面表示\n- 入力\n- 保存\n- コピー\n- 履歴\n- お気に入り\n- ファイルアップロード\n- スマホ表示\n- エラー表示\n\n"
+        + "## 技術条件\n" + joinOrDash(techList) + (techOtherLine ? "\n"+techOtherLine : "") + "\n\n"
+        + "## 守る条件\n" + joinOrDash(s.mustKeepConditions) + "\n\n"
+        + "## 依頼内容\n" + FIXED_LINE + "\n\n"
+        + "## 作業後に報告してほしいこと\n" + "検証結果と、問題があった場合の内容を報告してください。";
+    } else if(s.outputType === "引き継ぎ資料"){
+      header = "# Claude Codeへの引き継ぎ資料作成依頼";
+      body = ""
+        + "## アプリ目的\n" + (s.appName || "（未入力）") + "\n\n"
+        + "## 画面一覧・ファイル構成\n" + (s.targetPath || "（未入力）") + "\n\n"
+        + "## 対象ファイル\n" + fileLines.join("\n") + "\n\n"
+        + "## まとめてほしいこと\n" + (s.requestText || "（未入力）") + "\n\n"
+        + "## 保存データ\n" + "localStorageなど既存の保存データ形式を明記してください。\n\n"
+        + "## 触ってはいけない箇所\n" + joinOrDash(s.mustKeepConditions) + (memoInfo.noTouchNote ? "\n- "+memoInfo.noTouchNote : "") + "\n\n"
+        + "## 技術条件\n" + joinOrDash(techList) + (techOtherLine ? "\n"+techOtherLine : "") + "\n\n"
+        + "## 依頼内容\n" + "次に触る人が迷わないよう、目的、構成、変更禁止箇所、確認方法をまとめてください。\n" + FIXED_LINE + "\n\n"
+        + "## 確認方法\n" + "動作確認の方法を報告してください。";
+    } else {
+      // 基本テンプレート（Claude Codeに貼る開発指示 / その他）
+      header = "# Claude Codeへの開発指示";
+      body = ""
+        + "## 作業タイプ\n" + (s.workType || "（未選択）") + "\n\n"
+        + "## 対象アプリ\n" + (s.appName || "（未入力）") + "\n\n"
+        + "## 対象ファイル・フォルダ\n" + (s.targetPath || "（未入力）") + "\n\n"
+        + "## 対象ファイル\n" + fileLines.join("\n") + "\n\n"
+        + "## やりたいこと\n" + (s.requestText || "（未入力）") + "\n\n"
+        + "## 技術条件\n" + joinOrDash(techList) + (techOtherLine ? "\n"+techOtherLine : "") + "\n\n"
+        + "## 守る条件\n" + joinOrDash(s.mustKeepConditions) + "\n\n"
+        + "## 追加メモ\n" + (s.otherMemo || "（なし）") + (memoInfo.urlNote ? "\n参考URL："+memoInfo.urlNote : "") + "\n\n"
+        + "## 作業前にしてほしいこと\n"
+        + "まず現状を確認し、変更方針を説明してから作業してください。\n"
+        + "既存機能・既存データ・既存localStorageキーを壊さず、必要な箇所だけ変更してください。\n"
+        + (extraLine ? extraLine + "\n" : "")
+        + "\n## 対象ファイルについて\n" + FIXED_LINE + "\n\n"
+        + "## 作業後に報告してほしいこと\n"
+        + "- 変更したファイル\n- 変更した内容\n- 影響がありそうな箇所\n- 動作確認の方法\n- 追加で確認した方がよいこと";
+    }
+
+    return header + "\n\n" + body;
+  }
+
+  // ---------- バリデーション ----------
+  function validate(){
+    if(!state.workType){ alert("作業タイプを選んでください"); return false; }
+    if(!state.appName){ alert("対象アプリ名を入れてください"); return false; }
+    if(!state.requestText){ alert("Claude Codeに頼みたい内容を書いてください"); return false; }
+    if(!state.outputType){ alert("Claude Codeに何として渡すかを選んでください"); return false; }
+    return true;
+  }
+
+  // ---------- 完成指示生成ボタン ----------
+  var lastGenerated = "";
+
+  $("genBtn").addEventListener("click", function(){
+    state.appName = $("appName").value.trim();
+    state.targetPath = $("targetPath").value.trim();
+    state.requestText = $("requestText").value.trim();
+    state.techOtherText = $("techOtherText").value.trim();
+    state.otherMemo = $("otherMemo").value.trim();
+
+    if(!validate()) return;
+
+    lastGenerated = buildPrompt();
+    $("result-box").textContent = lastGenerated;
+    saveDraft();
+  });
+
+  $("copyBtn").addEventListener("click", function(){
+    var text = $("result-box").textContent;
+    if(!text || text.indexOf("まだ生成されていません") !== -1){
+      alert("先に「完成指示を作る」を押してください");
+      return;
+    }
+    copyText(text);
+  });
+
+  function copyText(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){
+        showToast("コピーしました");
+      }).catch(function(){
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{ document.execCommand("copy"); showToast("コピーしました"); }catch(e){ alert("コピーに失敗しました"); }
+    document.body.removeChild(ta);
+  }
+
+  // ---------- 履歴保存 ----------
+  function buildHistoryItem(isFavorite){
+    var f = state.uploadedFile;
+    return {
+      id: "h_" + Date.now() + "_" + Math.random().toString(36).slice(2,8),
+      createdAt: new Date().toISOString(),
+      workType: state.workType,
+      appName: state.appName,
+      targetPath: state.targetPath,
+      uploadedFiles: f ? [{
+        fileName: f.fileName,
+        fileSize: f.fileSize,
+        fileSizeLabel: f.fileSizeLabel,
+        extension: f.extension,
+        includeContent: f.includeContent,
+        contentIncluded: !!(f.includeContent && !f.contentTooLarge),
+        content: (f.includeContent && !f.contentTooLarge) ? f.content : "",
+        contentTooLarge: f.contentTooLarge,
+        uploadedAt: f.uploadedAt
+      }] : [],
+      requestText: state.requestText,
+      techConditions: state.techConditions.slice(),
+      mustKeepConditions: state.mustKeepConditions.slice(),
+      outputType: state.outputType,
+      otherMemo: state.otherMemo,
+      generatedPrompt: lastGenerated,
+      isFavorite: !!isFavorite
+    };
+  }
+
+  $("historyBtn").addEventListener("click", function(){
+    if(!lastGenerated){ alert("先に「完成指示を作る」を押してください"); return; }
+    var history = safeLoadJSON(HISTORY_KEY, []);
+    history.unshift(buildHistoryItem(false));
+    if(safeSaveJSON(HISTORY_KEY, history)){
+      showToast("履歴に残しました");
+      renderList();
+    }
+  });
+
+  $("favBtn").addEventListener("click", function(){
+    if(!lastGenerated){ alert("先に「完成指示を作る」を押してください"); return; }
+    var history = safeLoadJSON(HISTORY_KEY, []);
+    history.unshift(buildHistoryItem(true));
+    if(safeSaveJSON(HISTORY_KEY, history)){
+      showToast("お気に入りに入れました");
+      renderList();
+    }
+  });
+
+  // ---------- 入力クリア ----------
+  $("clearBtn").addEventListener("click", function(){
+    state.workType = "";
+    state.appName = "";
+    state.targetPath = "";
+    state.requestText = "";
+    state.techConditions = TECH_DEFAULT.slice();
+    state.techOtherText = "";
+    state.mustKeepConditions = MUSTKEEP_DEFAULT.slice();
+    state.outputType = "";
+    state.otherMemo = "";
+    state.uploadedFile = null;
+    lastGenerated = "";
+
+    $("appName").value = "";
+    $("targetPath").value = "";
+    $("requestText").value = "";
+    $("techOtherText").value = "";
+    $("otherMemo").value = "";
+    $("techOtherWrap").style.display = "none";
+    $("fileErrorBox").innerHTML = "";
+    $("fileInfoBox").innerHTML = "";
+    $("fileInput").value = "";
+    $("result-box").textContent = "まだ生成されていません。上の項目を入力して「完成指示を作る」を押してください。";
+
+    initCards();
+    showToast("入力をクリアしました");
+  });
+
+  // ---------- 下書き保存 ----------
+  var draftTimer = null;
+  function saveDraft(){
+    var draft = {
+      workType: state.workType,
+      appName: state.appName,
+      targetPath: state.targetPath,
+      requestText: state.requestText,
+      techConditions: state.techConditions.slice(),
+      techOtherText: state.techOtherText,
+      mustKeepConditions: state.mustKeepConditions.slice(),
+      outputType: state.outputType,
+      otherMemo: state.otherMemo,
+      updatedAt: new Date().toISOString()
+    };
+    safeSaveJSON(DRAFT_KEY, draft);
+  }
+
+  function scheduleDraftSave(){
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(function(){
+      state.appName = $("appName").value.trim();
+      state.targetPath = $("targetPath").value.trim();
+      state.requestText = $("requestText").value.trim();
+      state.techOtherText = $("techOtherText").value.trim();
+      state.otherMemo = $("otherMemo").value.trim();
+      saveDraft();
+    }, 600);
+  }
+
+  ["appName","targetPath","requestText","techOtherText","otherMemo"].forEach(function(id){
+    $(id).addEventListener("input", scheduleDraftSave);
+  });
+
+  function loadDraft(){
+    var draft = safeLoadJSON(DRAFT_KEY, null);
+    if(!draft || typeof draft !== "object") return;
+    state.workType = draft.workType || "";
+    state.appName = draft.appName || "";
+    state.targetPath = draft.targetPath || "";
+    state.requestText = draft.requestText || "";
+    state.techConditions = Array.isArray(draft.techConditions) ? draft.techConditions : TECH_DEFAULT.slice();
+    state.techOtherText = draft.techOtherText || "";
+    state.mustKeepConditions = Array.isArray(draft.mustKeepConditions) ? draft.mustKeepConditions : MUSTKEEP_DEFAULT.slice();
+    state.outputType = draft.outputType || "";
+    state.otherMemo = draft.otherMemo || "";
+
+    $("appName").value = state.appName;
+    $("targetPath").value = state.targetPath;
+    $("requestText").value = state.requestText;
+    $("techOtherText").value = state.techOtherText;
+    $("otherMemo").value = state.otherMemo;
+    $("techOtherWrap").style.display = state.techConditions.indexOf("その他") !== -1 ? "block" : "none";
+  }
+
+  // ---------- 履歴・お気に入り一覧 ----------
+  $("tabHistory").addEventListener("click", function(){
+    currentListTab = "history";
+    $("tabHistory").classList.add("active");
+    $("tabFav").classList.remove("active");
+    renderList();
+  });
+  $("tabFav").addEventListener("click", function(){
+    currentListTab = "favorite";
+    $("tabFav").classList.add("active");
+    $("tabHistory").classList.remove("active");
+    renderList();
+  });
+
+  function renderList(){
+    var history = safeLoadJSON(HISTORY_KEY, []);
+    var items = currentListTab === "favorite" ? history.filter(function(h){ return h.isFavorite; }) : history;
+    var box = $("listArea");
+    box.innerHTML = "";
+
+    if(!items.length){
+      box.innerHTML = '<div class="empty-msg">' + (currentListTab === "favorite" ? "お気に入りはまだありません" : "履歴はまだありません") + '</div>';
+      return;
+    }
+
+    items.forEach(function(item){
+      var el = document.createElement("div");
+      el.className = "history-item";
+
+      var snippet = (item.generatedPrompt || "").slice(0, 60).replace(/\n/g, " ");
+      var starChar = item.isFavorite ? "★" : "☆";
+
+      el.innerHTML = ""
+        + '<div class="meta">'+nowLabel(new Date(item.createdAt))+' ／ '+escapeHtml(item.appName||"")+' ／ '+escapeHtml(item.workType||"")+' ／ '+escapeHtml(item.outputType||"")+'</div>'
+        + '<div class="snippet">'+escapeHtml(snippet)+(item.generatedPrompt && item.generatedPrompt.length > 60 ? "..." : "")+'</div>'
+        + '<div class="actions">'
+        + '<button class="btn-small" data-act="show">再表示</button>'
+        + '<button class="btn-small" data-act="copy">コピー</button>'
+        + '<button class="fav-star" data-act="fav">'+starChar+'</button>'
+        + '<button class="btn-small" data-act="del">削除</button>'
+        + '</div>';
+
+      el.querySelector('[data-act="show"]').addEventListener("click", function(){
+        $("result-box").textContent = item.generatedPrompt || "";
+        lastGenerated = item.generatedPrompt || "";
+        window.scrollTo({top:0, behavior:"smooth"});
+      });
+      el.querySelector('[data-act="copy"]').addEventListener("click", function(){
+        copyText(item.generatedPrompt || "");
+      });
+      el.querySelector('[data-act="fav"]').addEventListener("click", function(){
+        toggleFavorite(item.id);
+      });
+      el.querySelector('[data-act="del"]').addEventListener("click", function(){
+        deleteHistoryItem(item.id);
+      });
+
+      box.appendChild(el);
+    });
+  }
+
+  function toggleFavorite(id){
+    var history = safeLoadJSON(HISTORY_KEY, []);
+    var target = history.find(function(h){ return h.id === id; });
+    if(target){
+      target.isFavorite = !target.isFavorite;
+      safeSaveJSON(HISTORY_KEY, history);
+      renderList();
+    }
+  }
+
+  function deleteHistoryItem(id){
+    var history = safeLoadJSON(HISTORY_KEY, []);
+    history = history.filter(function(h){ return h.id !== id; });
+    safeSaveJSON(HISTORY_KEY, history);
+    renderList();
+  }
+
+  // ---------- 初期化 ----------
+  function init(){
+    loadDraft();
+    initCards();
+    renderList();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
