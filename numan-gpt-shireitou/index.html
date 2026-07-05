@@ -160,10 +160,41 @@
     padding:10px 12px;
     border-radius:10px;
     margin:10px 0;
+    white-space:pre-line;
   }
   .msg.info{ background:#eef6ff; color:#2b6cb0; }
   .msg.warn{ background:#fff4e5; color:#b06a00; }
   .msg.error{ background:#fdeaea; color:#c0392b; }
+  .judge-badge{
+    display:inline-block;
+    font-size:12px;
+    font-weight:bold;
+    color:var(--accent);
+    background:var(--accent-light);
+    border-radius:20px;
+    padding:6px 12px;
+    margin:8px 0;
+  }
+  .next-steps{
+    background:var(--accent-light);
+    border:1px solid var(--accent);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:12px;
+    font-size:13px;
+  }
+  .next-steps .next-steps-title{
+    font-weight:bold;
+    color:var(--accent);
+    margin-bottom:6px;
+  }
+  .next-steps ol{
+    margin:0;
+    padding-left:20px;
+  }
+  .next-steps li{
+    margin-bottom:2px;
+  }
   .screen{ display:none; }
   .screen.active{ display:block; }
   .history-item{
@@ -189,6 +220,17 @@
     color:var(--accent);
     cursor:pointer;
     user-select:none;
+  }
+  .fav-badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:bold;
+    color:#fff;
+    background:var(--accent);
+    border-radius:10px;
+    padding:2px 8px;
+    margin-right:6px;
+    vertical-align:middle;
   }
   .filter-row{
     display:flex;
@@ -231,6 +273,7 @@
       <h2>事業を選ぶ</h2>
       <div class="options" id="opt-business"></div>
       <textarea class="other-input" id="business-other" placeholder="例：セミナー、採用、業務改善、新サービス企画" style="display:none;"></textarea>
+      <div class="judge-badge" id="home-judge-badge">現在の判定：未選択</div>
     </div>
 
     <div class="card">
@@ -283,13 +326,23 @@
   <section id="screen-result" class="screen">
     <div class="card">
       <h2>完成プロンプト</h2>
+      <div class="judge-badge" id="result-judge-badge"></div>
+      <div class="next-steps">
+        <div class="next-steps-title">次の流れ</div>
+        <ol>
+          <li>下のプロンプトをコピー</li>
+          <li>ぬーまん専用GPTを開く</li>
+          <li>貼り付けて送信</li>
+        </ol>
+      </div>
       <div id="result-messages"></div>
       <div class="prompt-box" id="result-prompt"></div>
       <button class="btn-primary" id="btn-copy">コピーする</button>
       <div class="btn-row">
+        <button class="btn-secondary" id="btn-open-gpt">ぬーまん専用GPTを開く</button>
         <button class="btn-secondary" id="btn-favorite">お気に入りに保存</button>
-        <button class="btn-secondary" id="btn-reedit">内容を引き継いで再編集</button>
       </div>
+      <button class="btn-secondary" id="btn-reedit">内容を引き継いで再編集</button>
       <button class="btn-secondary" id="btn-back-home">入力画面に戻る</button>
     </div>
   </section>
@@ -303,6 +356,7 @@
           <input type="checkbox" id="filter-favorite-only"> お気に入りのみ表示
         </label>
       </div>
+      <div id="history-messages"></div>
       <div id="history-list"></div>
     </div>
     <button class="btn-secondary" id="btn-history-back">入力画面に戻る</button>
@@ -365,6 +419,22 @@ var BUSINESS_E_NUMBER = {
   "FX": "E-3",
   "アプリ開発": "E-4"
 };
+
+/* ぬーまん専用GPTのURL。用意でき次第、ここに設定する */
+var NUMAN_GPT_URL = "";
+
+/* 事業選択から「現在の判定」表示文を組み立てる */
+function computeJudgeText(businessValue, businessOtherValue){
+  if(!businessValue){
+    return "現在の判定：未選択";
+  }
+  var displayName = businessValue;
+  if(businessValue === "その他"){
+    displayName = (businessOtherValue && businessOtherValue.trim()) ? businessOtherValue.trim() : "その他";
+  }
+  var modeText = BUSINESS_E_NUMBER[businessValue] || "汎用制作モード";
+  return "現在の判定：" + displayName + " → " + modeText;
+}
 
 /* ==========================================================
    状態
@@ -449,6 +519,7 @@ function renderOptions(containerId, options, field, isMultiple){
         btn.classList.add("selected");
       }
       updateOtherVisibility();
+      updateHomeJudgeBadge();
     });
     container.appendChild(btn);
   });
@@ -465,6 +536,11 @@ function toggleOther(id, show){
   document.getElementById(id).style.display = show ? "block" : "none";
 }
 
+function updateHomeJudgeBadge(){
+  var businessOtherVal = document.getElementById("business-other").value;
+  document.getElementById("home-judge-badge").textContent = computeJudgeText(state.business, businessOtherVal);
+}
+
 function initHomeScreen(){
   renderOptions("opt-business", BUSINESS_OPTIONS, "business", false);
   renderOptions("opt-outputType", OUTPUT_TYPE_OPTIONS, "outputType", false);
@@ -472,6 +548,7 @@ function initHomeScreen(){
   renderOptions("opt-outputMode", OUTPUT_MODE_OPTIONS, "outputMode", false);
   renderOptions("opt-extra", EXTRA_OPTIONS, "extraConditions", true);
   updateOtherVisibility();
+  updateHomeJudgeBadge();
 }
 
 /* ==========================================================
@@ -536,6 +613,7 @@ function fillHomeFormFromRecord(rec){
   document.getElementById("extra-other").value = state.extraConditionOther;
   document.getElementById("input-freeNote").value = state.freeNote;
   updateOtherVisibility();
+  updateHomeJudgeBadge();
 }
 
 function markSelected(containerId, value){
@@ -871,6 +949,7 @@ document.getElementById("btn-generate").addEventListener("click", function(){
   }
 
   document.getElementById("result-prompt").textContent = result.prompt;
+  document.getElementById("result-judge-badge").textContent = computeJudgeText(state.business, state.businessOther);
   updateFavoriteButtonLabel();
   showScreen("screen-result");
 });
@@ -891,6 +970,14 @@ document.getElementById("btn-copy").addEventListener("click", function(){
   copyText(document.getElementById("result-prompt").textContent, "result-messages");
 });
 
+document.getElementById("btn-open-gpt").addEventListener("click", function(){
+  if(!NUMAN_GPT_URL){
+    showMessage("result-messages", "GPTのURLがまだ設定されていません", "warn");
+    return;
+  }
+  window.open(NUMAN_GPT_URL, "_blank", "noopener");
+});
+
 document.getElementById("btn-reedit").addEventListener("click", function(){
   var history = loadHistory();
   var rec = history.find(function(r){ return r.id === lastGeneratedRecordId; });
@@ -908,14 +995,20 @@ document.getElementById("btn-back-home").addEventListener("click", function(){
 /* ==========================================================
    コピー処理
    ========================================================== */
-function copyText(text, msgContainerId){
+function showMessage(msgContainerId, text, type){
   var container = document.getElementById(msgContainerId);
+  var div = document.createElement("div");
+  div.className = "msg " + type;
+  div.textContent = text;
+  container.appendChild(div);
+  setTimeout(function(){ if(div.parentNode) div.parentNode.removeChild(div); }, 3000);
+  return div;
+}
+
+function copyText(text, msgContainerId, successMessage){
+  successMessage = successMessage || "コピーしました！\n次は、ぬーまん専用GPTに貼り付けてください。";
   function showResult(ok){
-    var div = document.createElement("div");
-    div.className = "msg " + (ok ? "info" : "error");
-    div.textContent = ok ? "コピーしました" : "コピーできませんでした。本文を長押しして選択してください";
-    container.appendChild(div);
-    setTimeout(function(){ if(div.parentNode) div.parentNode.removeChild(div); }, 3000);
+    showMessage(msgContainerId, ok ? successMessage : "コピーできませんでした。本文を長押しして選択してください", ok ? "info" : "error");
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(function(){
@@ -1027,6 +1120,12 @@ function renderHistoryList(){
     var title = document.createElement("div");
     title.className = "title";
     title.appendChild(star);
+    if(rec.isFavorite){
+      var favBadge = document.createElement("span");
+      favBadge.className = "fav-badge";
+      favBadge.textContent = "お気に入り";
+      title.appendChild(favBadge);
+    }
     var typeLabel = rec.outputType === "その他" ? (rec.outputTypeOther || "その他") : rec.outputType;
     title.appendChild(document.createTextNode(businessDisplayLabel(rec) + " ／ " + (typeLabel || "未選択")));
 
@@ -1047,6 +1146,13 @@ function renderHistoryList(){
       openDetail(rec.id);
     });
 
+    var copyBtn = document.createElement("button");
+    copyBtn.className = "btn-secondary";
+    copyBtn.textContent = "コピー";
+    copyBtn.addEventListener("click", function(){
+      copyText(rec.generatedPrompt, "history-messages", "コピーしました");
+    });
+
     var delBtn = document.createElement("button");
     delBtn.className = "btn-secondary";
     delBtn.style.color = "#c0392b";
@@ -1057,6 +1163,7 @@ function renderHistoryList(){
     });
 
     btnRow.appendChild(detailBtn);
+    btnRow.appendChild(copyBtn);
     btnRow.appendChild(delBtn);
     item.appendChild(btnRow);
 
@@ -1172,6 +1279,7 @@ document.getElementById("btn-detail-back").addEventListener("click", function(){
    ========================================================== */
 function init(){
   initHomeScreen();
+  document.getElementById("business-other").addEventListener("input", updateHomeJudgeBadge);
   // 設定キーは将来拡張用。現時点では読み込むだけ。
   loadSettings();
 }
